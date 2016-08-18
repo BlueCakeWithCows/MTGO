@@ -2,16 +2,21 @@ package Scanner;
 
 import java.util.Collection;
 import java.util.HashMap;
+
+import bluecake.LogHandler;
 import bluecake.TradeInfo;
 
 public abstract class WebScanner implements Runnable {
 	private HashMap<String, TradeInfo> scannedCards;
 	private HashMap<String, TradeInfo> recentlyUpdatedCards;
 	
-	private String identifier;
+	private final String identifier;
 	private boolean THREADED_DELETE;
+	protected LogHandler log;
 
-	public WebScanner(String identifier) {
+	public WebScanner(String identifier, LogHandler log) {
+		this.identifier = identifier;
+		log.setID(identifier);
 		THREADED_DELETE = true;
 	}
 
