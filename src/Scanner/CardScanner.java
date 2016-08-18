@@ -9,14 +9,14 @@ import java.util.Map;
 import bluecake.HalfTrade;
 import bluecake.Planner;
 
-public abstract class Scanner implements Runnable {
+public abstract class CardScanner implements Runnable {
 	public Map<String, HalfTrade> cards = Collections.synchronizedMap(new HashMap<String, HalfTrade>());
 	protected Long lastUpdate;
 	protected List<String> priority = Collections.synchronizedList(new ArrayList<String>());
 	public boolean running = false;
 	public Planner planner;
 
-	public Scanner(Planner p) {
+	public CardScanner(Planner p) {
 		this.planner = p;
 	}
 

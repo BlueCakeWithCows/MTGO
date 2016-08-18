@@ -15,7 +15,7 @@ import bluecake.HalfTrade;
 import bluecake.Planner;
 import bluecake.util.Log;
 
-public class HotlistScanner extends Scanner {
+public class HotlistScanner extends CardScanner {
 	public HotlistScanner(Planner p) {
 		super(p);
 		

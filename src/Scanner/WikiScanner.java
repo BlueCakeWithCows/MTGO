@@ -11,7 +11,7 @@ import bluecake.util.SimpleSaveLoad;
 import bluecake.util.Util;
 import bluecake.util.Versions;
 
-public class WikiScanner extends Scanner {
+public class WikiScanner extends CardScanner {
 	public WikiScanner(Planner p) {
 		super(p);
 		// TODO Auto-generated constructor stub
