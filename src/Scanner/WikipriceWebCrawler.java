@@ -109,8 +109,12 @@ public class WikipriceWebCrawler extends WebScanner {
 				currentCard = 0;
 			}
 			save();
+			try{
 			set = this.versions.get(this.currentSet)[0];
 			id = this.currentCard;
+			}catch(Exception e){
+				log(Log.SEVERE,e.getMessage());
+			}
 			log("Chose " + card + " not a request.");
 		}
 		return Pair.of(set, id);
@@ -135,9 +139,6 @@ public class WikipriceWebCrawler extends WebScanner {
 		SimpleSaveLoad.save(file, stuff);
 	}
 
-	public boolean cardIsMapped(String card) {
-		return CardIDIndex.containsKey(card);
-	}
 
 	private int failed_trade_counter;
 
@@ -152,34 +153,49 @@ public class WikipriceWebCrawler extends WebScanner {
 		TradeInfo tInfo = new TradeInfo();
 
 		String[] lines = html_page.split("\n");
+		String card = "";
+		try {
 
-		String card = lines[96];
-		if (card.contains("<span class"))
-			card = lines[150];
-		card = cleanupCardString(card);
+			card = lines[96];
+			if (card.contains("<span class"))
+				card = lines[150];
+			card = cleanupCardString(card);
 
-		for (int i = 0; i < lines.length; i++) {
-			if (lines[i].contains("collection_row sell_row group_boss bot  ") && tInfo.seller != null) {
-				if (lines[i + 1].contains("<td class=\" bot_name  \">")) {
-					for (int i2 = i; i2 < i + 14; i2++) {
-						if (lines[i2].contains("<td class=\" sell_price_round  \">")) {
-							tInfo.setSell(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
-							break;
+			for (int i = 0; i < lines.length; i++) {
+				if (lines[i].contains("collection_row sell_row group_boss bot  ") && tInfo.seller != null) {
+					if (lines[i + 1].contains("<td class=\" bot_name  \">")) {
+						for (int i2 = i; i2 < i + 14; i2++) {
+							if (lines[i2].contains("<td class=\" sell_price_round  \">")) {
+								try {
+									tInfo.setSell(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
+								} catch (NumberFormatException e) {
+									tInfo.seller = null;
+									log(Log.WARNING, e.getMessage());
+								}
+								break;
+							}
+						}
+					}
+				}
+
+				if (lines[i].contains("collection_row buy_row group_boss chain") && tInfo.buyer != null) {
+					if (lines[i + 1].contains("<td class=\" bot_name  \">")) {
+						for (int i2 = i; i2 < i + 14; i2++) {
+							if (lines[i2].contains("<td class=\" buy_price_round  \">")) {
+								try {
+									tInfo.setBuy(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
+								} catch (NumberFormatException e) {
+									tInfo.seller = null;
+									log(Log.WARNING, e.getMessage());
+								}
+								break;
+							}
 						}
 					}
 				}
 			}
-
-			if (lines[i].contains("collection_row buy_row group_boss chain") && tInfo.buyer != null) {
-				if (lines[i + 1].contains("<td class=\" bot_name  \">")) {
-					for (int i2 = i; i2 < i + 14; i2++) {
-						if (lines[i2].contains("<td class=\" buy_price_round  \">")) {
-							tInfo.setBuy(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
-							break;
-						}
-					}
-				}
-			}
+		} catch (ArrayIndexOutOfBoundsException e) {
+			log(Log.WARNING, e.getMessage());
 		}
 		log(tInfo.toString());
 
@@ -190,10 +206,11 @@ public class WikipriceWebCrawler extends WebScanner {
 			CardIDIndex.put(value, cardID);
 		}
 
-		if (tInfo.seller == null && tInfo.buyer == null)
+		if (tInfo.seller == null && tInfo.buyer == null) {
 			failed_trade_counter++;
-		else
-			failed_trade_counter=0;
+			log(Log.INFO, "Seller and Buyer are both null. Possibly nothing?");
+		} else
+			failed_trade_counter = 0;
 
 		return tInfo;
 	}
@@ -211,20 +228,26 @@ public class WikipriceWebCrawler extends WebScanner {
 	public void run() {
 
 		running = true;
+		this.skipWait = false;
 		this.load();
 
 		while (running) {
-			Pair<String, Integer> card = this.chooseNextCard();
+			Pair<String, Integer> card;
+			while((card= this.chooseNextCard()).getLeft()!=null){
+				
+			}
 			TradeInfo trade = this.getCard(card.getLeft(), card.getRight());
 			this.addTradeInfo(trade);
 			try {
-				if(skipWait);else{
-					if(failed_trade_counter > 2)
+				if (skipWait)
+					;
+				else {
+					if (failed_trade_counter > 2)
 						Thread.sleep((long) (TOO_MANY_REQUESTS_DELAY * 1000));
 					else
 						Thread.sleep((long) (DELAY_BETWEEN_PAGE_LOADS * 1000));
 				}
-				
+
 			} catch (InterruptedException ex) {
 				Thread.currentThread().interrupt();
 			}
