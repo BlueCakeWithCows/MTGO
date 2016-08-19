@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import bluecake.HalfTrade;
 import bluecake.Planner;
-import bluecake.util.Log;
+import bluecake.util.OldLog;
 import bluecake.util.SimpleSaveLoad;
 import bluecake.util.Util;
 import bluecake.util.Versions;
@@ -30,7 +30,7 @@ public class WikiScanner extends CardScanner {
 	private HashMap<String, Integer> forward = new HashMap<String, Integer>();;
 
 	private void load() {
-		Log.log(Log.WIKI, "Started Loading");
+		OldLog.log(OldLog.WIKI, "Started Loading");
 		try {
 			Versions.load();
 		} catch (FileNotFoundException e) {
@@ -54,7 +54,7 @@ public class WikiScanner extends CardScanner {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		Log.log(Log.WIKI, "Finished Loading");
+		OldLog.log(OldLog.WIKI, "Finished Loading");
 	}
 
 	private int counter;
@@ -64,7 +64,7 @@ public class WikiScanner extends CardScanner {
 		if(this.cards.containsKey(cards)){
 			if(System.currentTimeMillis()-this.cards.get(cards).time< 1000*60*60){
 				this.skipWait=true;
-				Log.log(Log.WIKI, "Recently scanned " + cards + " not scanning again.");
+				OldLog.log(OldLog.WIKI, "Recently scanned " + cards + " not scanning again.");
 				return;
 			}
 		}
@@ -74,18 +74,18 @@ public class WikiScanner extends CardScanner {
 		try {
 			cardId = forward.get(cards);
 		} catch (Exception e) {
-			Log.log(Log.WIKI, "Card not yet indexed: " + cards);
+			OldLog.log(OldLog.WIKI, "Card not yet indexed: " + cards);
 			skipWait = true;
 			return;
 		}
 		try {
 			String stuff = Util.getHTML("https://www.mtgowikiprice.com/card/" + set + "/" + cardId);
-			Log.log(Log.WIKI, "Got card " + set + "/" + cardId);
+			OldLog.log(OldLog.WIKI, "Got card " + set + "/" + cardId);
 			parse(stuff, cardId);
 
 		} catch (IOException e) {
 			e.printStackTrace();
-			Log.log(Log.WIKI, "Could not get card " + cards + " by request.");
+			OldLog.log(OldLog.WIKI, "Could not get card " + cards + " by request.");
 		}
 		return;
 	}
@@ -112,11 +112,11 @@ public class WikiScanner extends CardScanner {
 		try {
 			String stuff = Util.getHTML("https://www.mtgowikiprice.com/card/" + setName + "/" + currentCard);
 			parse(stuff, currentCard);
-			Log.log(Log.WIKI, "Got card " + setName + "/" + currentCard);
+			OldLog.log(OldLog.WIKI, "Got card " + setName + "/" + currentCard);
 
 		} catch (IOException e) {
 			e.printStackTrace();
-			Log.log(Log.WIKI, "Could not get card " + setName + "/" + currentCard);
+			OldLog.log(OldLog.WIKI, "Could not get card " + setName + "/" + currentCard);
 		}
 		currentCard += 1;
 		save();
@@ -179,11 +179,11 @@ public class WikiScanner extends CardScanner {
 			}
 
 		}
-		Log.log(Log.WIKI, card + ":" + buyer + ":" + seller + ":" + buyerPrice + ":" + sellerPrice);
+		OldLog.log(OldLog.WIKI, card + ":" + buyer + ":" + seller + ":" + buyerPrice + ":" + sellerPrice);
 		if (!forward.containsKey(card)) {
 			String value = card + "|" + id;
 			SimpleSaveLoad.append(index, value);
-			Log.log(Log.WIKI, "SAVED CARD " + card);
+			OldLog.log(OldLog.WIKI, "SAVED CARD " + card);
 			forward.put(value, id);
 		}
 

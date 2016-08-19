@@ -115,4 +115,13 @@ public class SimpleSaveLoad {
 			}
 		}
 	}
+	/**Returns true if it created a file*/
+	public static boolean createFileIfNoExist(String url, String string) {
+		File file = new File(url);
+		if(!file.exists()){
+			save(url,string);
+			return true;
+		}
+		return false;
+	}
 }

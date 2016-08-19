@@ -1,139 +1,142 @@
 package Scanner;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Vector;
+
+import org.apache.commons.lang3.tuple.Pair;
+
 import bluecake.HalfTrade;
 import bluecake.Planner;
-import bluecake.util.Log;
+import bluecake.TradeInfo;
+import bluecake.logging.Log;
+import bluecake.logging.LogHandler;
+import bluecake.util.OldLog;
 import bluecake.util.SimpleSaveLoad;
 import bluecake.util.Util;
 import bluecake.util.Versions;
 
 public class WikipriceWebCrawler extends WebScanner {
 	private final static String IDENTIFIER = "WIKI";
-	
-	//These values are in seconds
+
+	// These values are in seconds
 	private static final float DELAY_BETWEEN_PAGE_LOADS = 5;
 	private static final float TOO_MANY_REQUESTS_DELAY = 30;
-	
 
 	private static final String topFolder = "Wiki/";
-	/** File keeps track of last card program scrapped*/
+	/** File keeps track of last card program scrapped */
 	private static final String file = topFolder + "WikiStatus";
-	
-	/** Index keeps track of where it found cards. This allows it to jump to specific cards*/
-	private static final String index =topFolder+ "WikiDex";
-	
-	/**List of sets and set sizes for jumping crawling*/
-	private static final String sets =topFolder+ "Sets.txt";
-	
+
+	/**
+	 * Index keeps track of where it found cards. This allows it to jump to
+	 * specific cards
+	 */
+	private static final String index = topFolder + "WikiDex";
+
+	/** List of sets and set sizes for jumping crawling */
+	private static final String sets = topFolder + "Sets.txt";
+
 	/** Missing: [setName]/[card#] */
 	private static final String targetURL = "https://www.mtgowikiprice.com/card/";
-	
-	public WikipriceWebCrawler( ) {
-		super(IDENTIFIER);
-	}
-	//These keep track of the set (by line number in sets) and the card (by url on wikiprice)
-	private int currentSet = 0,currentCard;
 
-	
-	
-	
+	public WikipriceWebCrawler(LogHandler logger) {
+		super(IDENTIFIER, logger);
+	}
+
+	// These keep track of the set (by line number in sets) and the card (by url
+	// on wikiprice)
+	private int currentSet = 0, currentCard;
+
+	private boolean running;
+
+	public boolean getRunning() {
+		return running;
+	}
+
+	public void terminate() {
+		running = false;
+	}
+
 	private HashMap<String, Integer> CardIDIndex = new HashMap<String, Integer>();;
 
-	private void load() {
-		Log.log(Log.WIKI, "Started Loading");
-		try {
-			Versions.load();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	/** Return false if irrecoverable error */
+	private boolean load() {
 
-		try {
-			String cS = SimpleSaveLoad.loadLine(file, 0);
-			currentSet = Integer.valueOf(cS);
-			currentCard = Integer.valueOf(SimpleSaveLoad.loadLine(file, 1));
+		log("Loading Sets: " + sets);
+		if (!loadSets(sets))
+			return false;
 
-			List<String> file = SimpleSaveLoad.load(index);
-			for (String s : file) {
-				String[] split = s.split("\\|");
-				int id = Integer.valueOf(split[1]);
-				String name = split[0];
-				CardIDIndex.put(name, id);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Log.log(Log.WIKI, "Finished Loading");
+		log("Loading Last Card Location");
+		if (!loadLastCardLocation(file))
+			return false;
+
+		log("Loading Card Index");
+		if (!loadCardIndex(index))
+			return false;
+
+		log("Loading Complete!");
+		return true;
 	}
 
 	private int counter;
 	private boolean skipWait = false;
 
-	public void getCard(String cards) {
-		if(this.cards.containsKey(cards)){
-			if(System.currentTimeMillis()-this.cards.get(cards).time< 1000*60*60){
-				this.skipWait=true;
-				Log.log(Log.WIKI, "Recently scanned " + cards + " not scanning again.");
-				return;
+	private Pair<String, Integer> chooseNextCard() {
+
+		String card;
+		String set = "";
+		int id = 0;
+
+		while ((card = this.getAndRemoveRequest()) != null) {
+			if (card != null) {
+				String[] split = card.split("\\[");
+				set = split[1].replace("]", "");
+				if (CardIDIndex.containsKey(card)) {
+					id = CardIDIndex.get(card);
+					log("Chose " + card + " on request.");
+					break;
+				} else {
+					log("Card " + card + " not yet indexed.");
+				}
 			}
 		}
-		String[] split = cards.split("\\[");
-		String set = split[1].replace("]", "");
-		int cardId = 0;
-		try {
-			cardId = CardIDIndex.get(cards);
-		} catch (Exception e) {
-			Log.log(Log.WIKI, "Card not yet indexed: " + cards);
-			skipWait = true;
-			return;
-		}
-		try {
-			String stuff = Util.getHTML("https://www.mtgowikiprice.com/card/" + set + "/" + cardId);
-			Log.log(Log.WIKI, "Got card " + set + "/" + cardId);
-			parse(stuff, cardId);
 
-		} catch (IOException e) {
-			e.printStackTrace();
-			Log.log(Log.WIKI, "Could not get card " + cards + " by request.");
+		if (id == 0) {
+			// This area has bad error handling compared to rest
+			currentCard++;
+			if (currentCard > Integer.valueOf(this.versions.get(this.currentSet)[1])) {
+				currentSet++;
+				currentCard = 0;
+			}
+			if (currentSet > versions.size() - 1) {
+				currentSet = 0;
+				currentCard = 0;
+			}
+			save();
+			set = this.versions.get(this.currentSet)[0];
+			id = this.currentCard;
+			log("Chose " + card + " not a request.");
 		}
-		return;
+		return Pair.of(set, id);
 	}
 
-	public void getCard() {
-		String setName;
+	private TradeInfo getCard(String set, int cardID) {
+		String url = targetURL + set + "/" + cardID;
+		String html;
 		try {
-			setName = Versions.versions.get(currentSet)[0];
-		} catch (Exception e) {
-			currentSet = 0;
-			setName = Versions.versions.get(currentSet)[0];
-		}
-		try {
-			int maxCards = Integer.valueOf(Versions.versions.get(currentSet)[1]);
-			if (currentCard >= maxCards) {
-				currentSet += 1;
-				currentCard = 1;
-				getCard();
-				return;
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		try {
-			String stuff = Util.getHTML("https://www.mtgowikiprice.com/card/" + setName + "/" + currentCard);
-			parse(stuff, currentCard);
-			Log.log(Log.WIKI, "Got card " + setName + "/" + currentCard);
-
+			html = Util.getHTML(url);
 		} catch (IOException e) {
-			e.printStackTrace();
-			Log.log(Log.WIKI, "Could not get card " + setName + "/" + currentCard);
+			log(Log.SEVERE, e.getMessage());
+			log(Log.SEVERE, "Could not load page.");
+			return null;
 		}
-		currentCard += 1;
-		save();
+		TradeInfo info = parse(html, cardID);
+		return info;
 	}
 
 	public void save() {
@@ -145,74 +148,63 @@ public class WikipriceWebCrawler extends WebScanner {
 		return CardIDIndex.containsKey(card);
 	}
 
-	public HalfTrade parse(String stuff, int id) {
-		
-		counter++;
-		Float sellerPrice = null;
-		Float buyerPrice = null;
-		String seller = null, buyer = null;
+	private int failed_trade_counter;
 
-		boolean foundSeller = false;
-		boolean foundBuyer = false;
-
-		String[] lines = stuff.split("\n");
-		String card = lines[96];
+	private String cleanupCardString(String card) {
 		card = card.replace("&#39;", "'");
 		card = card.replace("&quot;", "\"");
-		if(card.contains("<span class")){
-			 card = lines[150];
-				card = card.replace("&#39;", "'");
-				card = card.replace("&quot;", "\"");
-		}
-		for (int i = 0; i < lines.length; i++) {
-			if (lines[i].contains("collection_row sell_row group_boss bot  ") && !foundSeller) {
-				if (lines[i + 1].contains("<td class=\" bot_name  \">")) {
-					seller = parseName(lines[i + 2]);
+		return card;
+	}
 
+	public TradeInfo parse(String html_page, int cardID) {
+
+		TradeInfo tInfo = new TradeInfo();
+
+		String[] lines = html_page.split("\n");
+
+		String card = lines[96];
+		if (card.contains("<span class"))
+			card = lines[150];
+		card = cleanupCardString(card);
+
+		for (int i = 0; i < lines.length; i++) {
+			if (lines[i].contains("collection_row sell_row group_boss bot  ") && tInfo.seller != null) {
+				if (lines[i + 1].contains("<td class=\" bot_name  \">")) {
 					for (int i2 = i; i2 < i + 14; i2++) {
 						if (lines[i2].contains("<td class=\" sell_price_round  \">")) {
-							sellerPrice = Float.parseFloat(lines[i2 + 1]);
-							foundSeller = true;
+							tInfo.setSell(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
 							break;
 						}
 					}
 				}
 			}
 
-			if (lines[i].contains("collection_row buy_row group_boss chain") && !foundBuyer) {
+			if (lines[i].contains("collection_row buy_row group_boss chain") && tInfo.buyer != null) {
 				if (lines[i + 1].contains("<td class=\" bot_name  \">")) {
-					buyer = parseName(lines[i + 2]);
 					for (int i2 = i; i2 < i + 14; i2++) {
 						if (lines[i2].contains("<td class=\" buy_price_round  \">")) {
-							buyerPrice = Float.parseFloat(lines[i2 + 1]);
-							foundBuyer = true;
+							tInfo.setBuy(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
 							break;
 						}
 					}
 				}
 			}
-
 		}
-		Log.log(Log.WIKI, card + ":" + buyer + ":" + seller + ":" + buyerPrice + ":" + sellerPrice);
+		log(tInfo.toString());
+
 		if (!CardIDIndex.containsKey(card)) {
-			String value = card + "|" + id;
+			String value = card + "|" + cardID;
 			SimpleSaveLoad.append(index, value);
-			Log.log(Log.WIKI, "SAVED CARD " + card);
-			CardIDIndex.put(value, id);
+			log("SAVED CARD " + card);
+			CardIDIndex.put(value, cardID);
 		}
 
-		HalfTrade deal = new HalfTrade(HalfTrade.WIKIPRICE);
-		if (seller != null || buyer != null) {
-			counter = 0;
-		}
-		deal.setBuyer(buyer);
-		deal.setSeller(seller);
-		deal.buyPrice = buyerPrice;
-		deal.sellPrice = sellerPrice;
-		deal.card = card;
-		deal.setTime();
-		add(deal);
-		return deal;
+		if (tInfo.seller == null && tInfo.buyer == null)
+			failed_trade_counter++;
+		else
+			failed_trade_counter=0;
+
+		return tInfo;
 	}
 
 	private static String parseName(String name) {
@@ -226,16 +218,14 @@ public class WikipriceWebCrawler extends WebScanner {
 
 	@Override
 	public void run() {
+
 		running = true;
 		this.load();
+
 		while (running) {
-			if ( priority.isEmpty()) {
-				getCard();
-			} else {
-				String card = priority.get(0);
-				this.getCard(card);
-				removeCard(card);
-			}
+			Pair<String, Integer> card = this.chooseNextCard();
+			TradeInfo trade = this.getCard(card.getLeft(), card.getRight());
+			
 			try {
 				if (!skipWait) {
 					if (counter > 3) {
@@ -249,8 +239,74 @@ public class WikipriceWebCrawler extends WebScanner {
 			} catch (InterruptedException ex) {
 				Thread.currentThread().interrupt();
 			}
-			skipWait=false;
+			skipWait = false;
 		}
 		running = false;
+	}
+
+	private List<String[]> versions;
+
+	private boolean loadSets(String url) {
+
+		versions = new ArrayList<String[]>();
+		try {
+			List<String> file = SimpleSaveLoad.load(url);
+			for (String line : file) {
+				String l = line.split("-")[0];
+				String l2 = line.split("-")[1];
+				versions.add(new String[] { l, l2 });
+			}
+
+		} catch (FileNotFoundException e) {
+			log(Log.SEVERE, "Could not find file at: " + url);
+			return false;
+		} catch (IOException e) {
+			log(Log.SEVERE, e.getMessage());
+			return false;
+		}
+
+		return true;
+	}
+
+	private boolean loadLastCardLocation(String url) {
+		String cS;
+
+		try {
+			if (SimpleSaveLoad.createFileIfNoExist(url, "0\n0"))
+				log(Log.INFO, "Wikistatus file not found. Creating: " + url);
+			cS = SimpleSaveLoad.loadLine(url, 0);
+			currentSet = Integer.valueOf(cS);
+			currentCard = Integer.valueOf(SimpleSaveLoad.loadLine(url, 1));
+			log(Log.INFO, "Set is " + currentSet + " and card is " + currentCard);
+		} catch (NumberFormatException e) {
+			log(Log.WARNING, "Invalid status file: " + url);
+			log(Log.WARNING, "Using default status values");
+			currentSet = 0;
+			currentCard = 1;
+		} catch (IOException e) {
+			log(Log.SEVERE, e.getMessage());
+			log(Log.WARNING, "Using default status values");
+			currentSet = 0;
+			currentCard = 1;
+		}
+		return true;
+	}
+
+	private boolean loadCardIndex(String index) {
+		try {
+			if (SimpleSaveLoad.createFileIfNoExist(index, ""))
+				log(Log.WARNING, "Did not find index at:" + index + "\nCreating blank index");
+
+			List<String> file = SimpleSaveLoad.load(index);
+			for (String s : file) {
+				String[] split = s.split("\\|");
+				int id = Integer.valueOf(split[1]);
+				String name = split[0];
+				CardIDIndex.put(name, id);
+			}
+		} catch (IOException e) {
+			log(Log.SEVERE, e.getMessage());
+		}
+		return true;
 	}
 }

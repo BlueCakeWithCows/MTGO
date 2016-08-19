@@ -13,7 +13,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import bluecake.HalfTrade;
 import bluecake.Planner;
-import bluecake.util.Log;
+import bluecake.util.OldLog;
 
 public class HotlistScanner extends CardScanner {
 	public HotlistScanner(Planner p) {
@@ -32,10 +32,10 @@ public class HotlistScanner extends CardScanner {
 
 			try {
 				String html = "http://www.mtgotraders.com/hotlist/#/";
-				Log.log(Log.HOT, "Loading Page: " + html);
+				OldLog.log(OldLog.HOT, "Loading Page: " + html);
 				HtmlPage page = webClient.getPage(html);
 				webClient.waitForBackgroundJavaScript(30000);
-				Log.log(Log.HOT, "Page Loaded. Running Javascript");
+				OldLog.log(OldLog.HOT, "Page Loaded. Running Javascript");
 				page.executeJavaScript("filterNonFoils()");
 
 				HtmlAnchor div = page.getFirstByXPath(
@@ -45,7 +45,7 @@ public class HotlistScanner extends CardScanner {
 
 				page.getFirstByXPath("//*[@id=\"toolbar\"]/label[3]/input");
 				page.getElementById("toolbar").click();
-				Log.log(Log.HOT, "Javascript Done. Parsing Page." + html);
+				OldLog.log(OldLog.HOT, "Javascript Done. Parsing Page." + html);
 
 				String text = page.asText();
 				String[] lines = text.split(System.lineSeparator());
@@ -71,11 +71,11 @@ public class HotlistScanner extends CardScanner {
 					d.buyPrice = buyPrice;
 					d.setTime();
 					this.add(d);
-					Log.log(Log.HOT, "Got Card "+name+ " for "+ buyPrice);
+					OldLog.log(OldLog.HOT, "Got Card "+name+ " for "+ buyPrice);
 					
 				}
 				this.cards = map;
-				Log.log(Log.HOT, "Done parsing hotlist." + html);
+				OldLog.log(OldLog.HOT, "Done parsing hotlist." + html);
 
 
 			} catch (IOException e) {
@@ -96,7 +96,7 @@ public class HotlistScanner extends CardScanner {
 		webClient.getOptions().setJavaScriptEnabled(true);
 		webClient.getOptions().setCssEnabled(false);
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF);
-		Log.log(Log.HOT, "Web Client Initialized");
+		OldLog.log(OldLog.HOT, "Web Client Initialized");
 		return webClient;
 	}
 

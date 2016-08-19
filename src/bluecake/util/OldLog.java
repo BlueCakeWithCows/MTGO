@@ -3,7 +3,7 @@ package bluecake.util;
 import bluecake.Main;
 import bluecake.Table;
 
-public class Log {
+public class OldLog {
 	public static final int WIKI = 1;
 	public static final int HOT = 2;
 

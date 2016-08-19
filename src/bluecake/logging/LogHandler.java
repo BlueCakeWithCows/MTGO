@@ -1,4 +1,4 @@
-package bluecake;
+package bluecake.logging;
 
 public class LogHandler {
 
