@@ -12,9 +12,11 @@ public abstract class WebScanner implements Runnable {
 	private HashMap<String, TradeInfo> scannedCards;
 	private HashMap<String, TradeInfo> recentlyUpdatedCards;
 	private List<String> requestedCards;
-	private final String identifier;
+	public final String identifier;
 	private boolean THREADED_DELETE;
+	public boolean running;
 	protected LogHandler log;
+	private long CARD_UPDATE_TIME;
 
 	public WebScanner(String identifier, LogHandler log) {
 		this.scannedCards = new HashMap<String, TradeInfo>();
@@ -23,6 +25,21 @@ public abstract class WebScanner implements Runnable {
 		this.identifier = identifier;
 		log.setID(identifier);
 		THREADED_DELETE = true;
+	}
+
+	public boolean hasEnoughTimeHasPassedToUpdateTradeInfo(String card) {
+		return (scannedCards.containsKey(card)
+				&& scannedCards.get(card).getCreationTime() + CARD_UPDATE_TIME < System.currentTimeMillis());
+	}
+
+	/**
+	 * Individual cards WILL NOT be chosen to update unless this time has passed
+	 * - behavior varies by Scanner implementation.
+	 * 
+	 * @param time
+	 */
+	public void setCardUpdateTime(float time) {
+		this.CARD_UPDATE_TIME = (long) (time * 1000);
 	}
 
 	/** Should only be called in scanner's thread */
@@ -58,7 +75,7 @@ public abstract class WebScanner implements Runnable {
 	}
 
 	protected void log(int level, String message) {
-
+		log.log(level, message);
 	}
 
 	protected String getAndRemoveRequest() {
@@ -80,5 +97,8 @@ public abstract class WebScanner implements Runnable {
 		synchronized (requestedCards) {
 			requestedCards.add(card);
 		}
+	}
+	public long getCardUpdateTime(){
+		return this.CARD_UPDATE_TIME;
 	}
 }

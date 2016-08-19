@@ -1,9 +1,15 @@
 package bluecake;
 
 public class TradeInfo {
-	public void setCard(String card){
+	
+	public TradeInfo(String source) {
+		creationTime = System.currentTimeMillis();
+	}
+
+	public void setCard(String card) {
 		this.card = card;
 	}
+
 	public String getCard() {
 		return card;
 	}
@@ -16,13 +22,23 @@ public class TradeInfo {
 	public String source;
 	public String card;
 	public Float buyerPrice, sellerPrice;
-	
-	public void setBuy(String buyer,Float price){
+	private long creationTime;
+
+	public void setBuy(String buyer, Float price) {
 		this.buyer = buyer;
-		this.buyerPrice=price;
+		this.buyerPrice = price;
 	}
-	public void setSell(String seller,Float price){
+
+	public void setSell(String seller, Float price) {
 		this.seller = seller;
-		this.sellerPrice=price;
+		this.sellerPrice = price;
+	}
+
+	public long getCreationTime() {
+		return creationTime;
+	}
+
+	public String getSource() {
+		return source;
 	}
 }

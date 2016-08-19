@@ -8,7 +8,7 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 
 import bluecake.TradeInfo;
-import bluecake.logging.Log;
+import bluecake.logging.HeadLogger;
 import bluecake.logging.LogHandler;
 import bluecake.util.SimpleSaveLoad;
 import bluecake.util.Util;
@@ -58,6 +58,7 @@ public class WikipriceWebCrawler extends WebScanner {
 
 	/** Return false if irrecoverable error */
 	private boolean load() {
+		this.setCardUpdateTime(60*60);
 
 		log("Loading Sets: " + sets);
 		if (!loadSets(sets))
@@ -109,11 +110,11 @@ public class WikipriceWebCrawler extends WebScanner {
 				currentCard = 0;
 			}
 			save();
-			try{
-			set = this.versions.get(this.currentSet)[0];
-			id = this.currentCard;
-			}catch(Exception e){
-				log(Log.SEVERE,e.getMessage());
+			try {
+				set = this.versions.get(this.currentSet)[0];
+				id = this.currentCard;
+			} catch (Exception e) {
+				log(HeadLogger.SEVERE, e.getMessage());
 			}
 			log("Chose " + card + " not a request.");
 		}
@@ -126,8 +127,8 @@ public class WikipriceWebCrawler extends WebScanner {
 		try {
 			html = Util.getHTML(url);
 		} catch (IOException e) {
-			log(Log.SEVERE, e.getMessage());
-			log(Log.SEVERE, "Could not load page.");
+			log(HeadLogger.SEVERE, e.getMessage());
+			log(HeadLogger.SEVERE, "Could not load page.");
 			return null;
 		}
 		TradeInfo info = parse(html, cardID);
@@ -139,7 +140,6 @@ public class WikipriceWebCrawler extends WebScanner {
 		SimpleSaveLoad.save(file, stuff);
 	}
 
-
 	private int failed_trade_counter;
 
 	private String cleanupCardString(String card) {
@@ -150,7 +150,7 @@ public class WikipriceWebCrawler extends WebScanner {
 
 	public TradeInfo parse(String html_page, int cardID) {
 
-		TradeInfo tInfo = new TradeInfo();
+		TradeInfo tInfo = new TradeInfo(IDENTIFIER);
 
 		String[] lines = html_page.split("\n");
 		String card = "";
@@ -170,7 +170,7 @@ public class WikipriceWebCrawler extends WebScanner {
 									tInfo.setSell(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
 								} catch (NumberFormatException e) {
 									tInfo.seller = null;
-									log(Log.WARNING, e.getMessage());
+									log(HeadLogger.WARNING, e.getMessage());
 								}
 								break;
 							}
@@ -186,7 +186,7 @@ public class WikipriceWebCrawler extends WebScanner {
 									tInfo.setBuy(parseName(lines[i + 2]), Float.parseFloat(lines[i2 + 1]));
 								} catch (NumberFormatException e) {
 									tInfo.seller = null;
-									log(Log.WARNING, e.getMessage());
+									log(HeadLogger.WARNING, e.getMessage());
 								}
 								break;
 							}
@@ -195,7 +195,7 @@ public class WikipriceWebCrawler extends WebScanner {
 				}
 			}
 		} catch (ArrayIndexOutOfBoundsException e) {
-			log(Log.WARNING, e.getMessage());
+			log(HeadLogger.WARNING, e.getMessage());
 		}
 		log(tInfo.toString());
 
@@ -208,7 +208,7 @@ public class WikipriceWebCrawler extends WebScanner {
 
 		if (tInfo.seller == null && tInfo.buyer == null) {
 			failed_trade_counter++;
-			log(Log.INFO, "Seller and Buyer are both null. Possibly nothing?");
+			log(HeadLogger.INFO, "Seller and Buyer are both null. Possibly nothing?");
 		} else
 			failed_trade_counter = 0;
 
@@ -233,11 +233,14 @@ public class WikipriceWebCrawler extends WebScanner {
 
 		while (running) {
 			Pair<String, Integer> card;
-			while((card= this.chooseNextCard()).getLeft()!=null){
-				
+			//May be a problem with the following line
+			while (!(card = this.chooseNextCard()).getLeft().equalsIgnoreCase("")) {
+				if (this.hasEnoughTimeHasPassedToUpdateTradeInfo(card.getLeft()))
+					break;
 			}
 			TradeInfo trade = this.getCard(card.getLeft(), card.getRight());
-			this.addTradeInfo(trade);
+			if (trade != null)
+				this.addTradeInfo(trade);
 			try {
 				if (skipWait)
 					;
@@ -270,10 +273,10 @@ public class WikipriceWebCrawler extends WebScanner {
 			}
 
 		} catch (FileNotFoundException e) {
-			log(Log.SEVERE, "Could not find file at: " + url);
+			log(HeadLogger.SEVERE, "Could not find file at: " + url);
 			return false;
 		} catch (IOException e) {
-			log(Log.SEVERE, e.getMessage());
+			log(HeadLogger.SEVERE, e.getMessage());
 			return false;
 		}
 
@@ -285,19 +288,19 @@ public class WikipriceWebCrawler extends WebScanner {
 
 		try {
 			if (SimpleSaveLoad.createFileIfNoExist(url, "0\n0"))
-				log(Log.INFO, "Wikistatus file not found. Creating: " + url);
+				log(HeadLogger.INFO, "Wikistatus file not found. Creating: " + url);
 			cS = SimpleSaveLoad.loadLine(url, 0);
 			currentSet = Integer.valueOf(cS);
 			currentCard = Integer.valueOf(SimpleSaveLoad.loadLine(url, 1));
-			log(Log.INFO, "Set is " + currentSet + " and card is " + currentCard);
+			log(HeadLogger.INFO, "Set is " + currentSet + " and card is " + currentCard);
 		} catch (NumberFormatException e) {
-			log(Log.WARNING, "Invalid status file: " + url);
-			log(Log.WARNING, "Using default status values");
+			log(HeadLogger.WARNING, "Invalid status file: " + url);
+			log(HeadLogger.WARNING, "Using default status values");
 			currentSet = 0;
 			currentCard = 1;
 		} catch (IOException e) {
-			log(Log.SEVERE, e.getMessage());
-			log(Log.WARNING, "Using default status values");
+			log(HeadLogger.SEVERE, e.getMessage());
+			log(HeadLogger.WARNING, "Using default status values");
 			currentSet = 0;
 			currentCard = 1;
 		}
@@ -307,7 +310,7 @@ public class WikipriceWebCrawler extends WebScanner {
 	private boolean loadCardIndex(String index) {
 		try {
 			if (SimpleSaveLoad.createFileIfNoExist(index, ""))
-				log(Log.WARNING, "Did not find index at:" + index + "\nCreating blank index");
+				log(HeadLogger.WARNING, "Did not find index at:" + index + "\nCreating blank index");
 
 			List<String> file = SimpleSaveLoad.load(index);
 			for (String s : file) {
@@ -317,7 +320,7 @@ public class WikipriceWebCrawler extends WebScanner {
 				CardIDIndex.put(name, id);
 			}
 		} catch (IOException e) {
-			log(Log.SEVERE, e.getMessage());
+			log(HeadLogger.SEVERE, e.getMessage());
 		}
 		return true;
 	}
