@@ -1,25 +1,17 @@
 package Scanner;
 
-import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Vector;
-
 import org.apache.commons.lang3.tuple.Pair;
 
-import bluecake.HalfTrade;
-import bluecake.Planner;
 import bluecake.TradeInfo;
 import bluecake.logging.Log;
 import bluecake.logging.LogHandler;
-import bluecake.util.OldLog;
 import bluecake.util.SimpleSaveLoad;
 import bluecake.util.Util;
-import bluecake.util.Versions;
 
 public class WikipriceWebCrawler extends WebScanner {
 	private final static String IDENTIFIER = "WIKI";
@@ -83,7 +75,6 @@ public class WikipriceWebCrawler extends WebScanner {
 		return true;
 	}
 
-	private int counter;
 	private boolean skipWait = false;
 
 	private Pair<String, Integer> chooseNextCard() {
@@ -225,17 +216,15 @@ public class WikipriceWebCrawler extends WebScanner {
 		while (running) {
 			Pair<String, Integer> card = this.chooseNextCard();
 			TradeInfo trade = this.getCard(card.getLeft(), card.getRight());
-			
+			this.addTradeInfo(trade);
 			try {
-				if (!skipWait) {
-					if (counter > 3) {
-						Thread.sleep(30 * 1000);
-					} else {
-						Thread.sleep(CALL_SPEED * 1000);
-					}
+				if(skipWait);else{
+					if(failed_trade_counter > 2)
+						Thread.sleep((long) (TOO_MANY_REQUESTS_DELAY * 1000));
+					else
+						Thread.sleep((long) (DELAY_BETWEEN_PAGE_LOADS * 1000));
 				}
-				// 1000 milliseconds is one
-				// second.
+				
 			} catch (InterruptedException ex) {
 				Thread.currentThread().interrupt();
 			}
