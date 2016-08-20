@@ -1,7 +1,7 @@
-package bluecake;
+package bluecake.misc;
 
 public class TradeInfo {
-	
+
 	public TradeInfo(String source) {
 		creationTime = System.currentTimeMillis();
 	}
@@ -40,5 +40,9 @@ public class TradeInfo {
 
 	public String getSource() {
 		return source;
+	}
+
+	public String toString(){
+		return card+":"+seller+":"+sellerPrice+":"+buyer+":"+buyerPrice+":"+creationTime+":"+source;
 	}
 }

@@ -1,4 +1,4 @@
-package Scanner;
+package bluecake.scanner;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -12,22 +12,20 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
-import bluecake.TradeInfo;
-import bluecake.logging.HeadLogger;
-import bluecake.logging.LogHandler;
-import bluecake.util.OldLog;
+import bluecake.misc.TradeInfo;
 
 public class HotListWebScanner extends WebScanner {
-	private final String URL = "http://www.mtgotraders.com/hotlist/#/";
+	private final String URL = "http://www.mtgotraders.com/hotlist/";
 	private WebClient webClient;
 
-	public HotListWebScanner(LogHandler log) {
-		super("HotList", log);
+	public HotListWebScanner() {
+		super("HotList");
 	}
 
 	private void load() {
 		this.setCardUpdateTime(300);
 		running = true;
+		log("Loaded");
 	}
 
 	@Override
@@ -104,13 +102,13 @@ public class HotListWebScanner extends WebScanner {
 			page.getElementById("toolbar").click();
 			return page;
 		} catch (FailingHttpStatusCodeException e) {
-			log.log(HeadLogger.SEVERE, e.getMessage());
+			gui.log(e.getMessage());
 		} catch (MalformedURLException e) {
-			log.log(HeadLogger.SEVERE, e.getMessage());
+			gui.log(e.getMessage());
 		} catch (IOException e) {
-			log.log(HeadLogger.SEVERE, e.getMessage());
+			gui.log(e.getMessage());
 		}
-		log.log(HeadLogger.SEVERE, "Failed to load page: " + URL);
+		gui.log("Failed to load page: " + URL);
 		return null;
 	}
 
@@ -121,7 +119,7 @@ public class HotListWebScanner extends WebScanner {
 		webClient.getOptions().setJavaScriptEnabled(true);
 		webClient.getOptions().setCssEnabled(false);
 		java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF);
-		OldLog.log(OldLog.HOT, "Web Client Initialized");
+		log("Web Client Initialized");
 		return webClient;
 	}
 

@@ -1,12 +1,14 @@
-package Scanner;
+package bluecake.scanner;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
-import bluecake.TradeInfo;
-import bluecake.logging.LogHandler;
+import bluecake.GUI.GUI;
+import bluecake.GUI.GUIHandle;
+import bluecake.misc.Log;
+import bluecake.misc.TradeInfo;
 
 public abstract class WebScanner implements Runnable {
 	private HashMap<String, TradeInfo> scannedCards;
@@ -15,21 +17,21 @@ public abstract class WebScanner implements Runnable {
 	public final String identifier;
 	private boolean THREADED_DELETE;
 	public boolean running;
-	protected LogHandler log;
 	private long CARD_UPDATE_TIME;
+	protected GUIHandle gui;
 
-	public WebScanner(String identifier, LogHandler log) {
+	public WebScanner(String identifier) {
 		this.scannedCards = new HashMap<String, TradeInfo>();
 		this.recentlyUpdatedCards = new HashMap<String, TradeInfo>();
 		this.requestedCards = new ArrayList<String>();
 		this.identifier = identifier;
-		log.setID(identifier);
 		THREADED_DELETE = true;
+		gui = GUI.gui.createAndAddGuiHandle(identifier);
 	}
 
 	public boolean hasEnoughTimeHasPassedToUpdateTradeInfo(String card) {
-		return (scannedCards.containsKey(card)
-				&& scannedCards.get(card).getCreationTime() + CARD_UPDATE_TIME < System.currentTimeMillis());
+		return (!scannedCards.containsKey(card)
+				|| scannedCards.get(card).getCreationTime() + CARD_UPDATE_TIME < System.currentTimeMillis());
 	}
 
 	/**
@@ -71,18 +73,20 @@ public abstract class WebScanner implements Runnable {
 	}
 
 	protected void log(String s) {
-
+		log(Log.INFO, s);
 	}
 
 	protected void log(int level, String message) {
-		log.log(level, message);
+		GUI.gui.log(level, identifier, message);
 	}
 
 	protected String getAndRemoveRequest() {
 		synchronized (requestedCards) {
 			String card;
-			if (requestedCards.size() > 0)
+			if (requestedCards.size() > 0){
 				card = requestedCards.get(0);
+				
+			}
 			else
 				return null;
 
@@ -96,9 +100,11 @@ public abstract class WebScanner implements Runnable {
 	public void requestCard(String card) {
 		synchronized (requestedCards) {
 			requestedCards.add(card);
+			
 		}
 	}
-	public long getCardUpdateTime(){
+
+	public long getCardUpdateTime() {
 		return this.CARD_UPDATE_TIME;
 	}
 }

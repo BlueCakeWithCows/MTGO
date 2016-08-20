@@ -74,29 +74,11 @@ public class Util {
 		return s;
 	}
 
-	public static void main(String[] agrs) throws InterruptedException, FileNotFoundException, IOException {
-		Versions.load();
-		ArrayList<String> newCount = new ArrayList<String>();
-		for (String[] ver : Versions.versions) {
-			int number = 0;
-			for (int i = 1; i < 600; i++) {
-				TimeUnit.SECONDS.sleep(1);
-				try{
-				getHTML("https://www.mtgowikiprice.com/card/" + ver[0] + "/" + i);
-				
-				}catch(java.io.FileNotFoundException e){
-					number = i;
-					break;
-				}catch(Exception e){
-					e.printStackTrace();
-				}
-			}
-			newCount.add(ver[0] + "-" + number);
-		}
-		PrintWriter writer = new PrintWriter("sets.txt", "UTF-8");
-		for (String s : newCount) {
-			writer.println(s);
-		}
-		writer.close();
+	public static int getAgeFromCreation(long oT) {
+		long cT = System.currentTimeMillis();
+		long nT = cT - oT;
+		nT = nT / 1000;
+		int minutes = (int) (nT / 60);
+		return minutes;
 	}
 }

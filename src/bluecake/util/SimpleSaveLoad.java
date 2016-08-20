@@ -117,10 +117,12 @@ public class SimpleSaveLoad {
 	}
 	/**Returns true if it created a file*/
 	public static boolean createFileIfNoExist(String url, String string) {
+		url = folder + url;
 		File file = new File(url);
-		if(!file.exists()){
-			save(url,string);
-			return true;
+		try {
+			file.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return false;
 	}
