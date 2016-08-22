@@ -1,5 +1,6 @@
 package bluecake.misc;
 
+import java.util.Comparator;
 import java.util.Vector;
 
 import bluecake.util.Util;
@@ -35,13 +36,13 @@ public class CompleteTrade {
 	public Float getNet() {
 		if (buyer == null || seller == null || buyer.buyerPrice == null || seller.sellerPrice == null)
 			return null;
-		return buyer.buyerPrice-seller.sellerPrice;
+		return buyer.buyerPrice - seller.sellerPrice;
 	}
 
 	public Float getNetPercent() {
 		if (buyer == null || seller == null || buyer.buyerPrice == null || seller.sellerPrice == null)
 			return null;
-		return (seller.sellerPrice - buyer.buyerPrice) / seller.sellerPrice;
+		return (buyer.buyerPrice - seller.sellerPrice) / seller.sellerPrice;
 	}
 
 	public Object getCardName() {
@@ -130,5 +131,27 @@ public class CompleteTrade {
 		}
 
 		return (s || b);
+	}
+
+	public static Comparator<? super CompleteTrade> getComparator() {
+		return new Comparator<CompleteTrade>() {
+
+			@Override
+			public int compare(CompleteTrade o1, CompleteTrade o2) {
+				if (o1.getNet() == null && o2.getNet() == null)
+					return 0;
+				if (o1.getNet() == null)
+					return 1;
+				if (o2.getNet() == null)
+					return -1;
+				if (o1.getNet() > o2.getNet())
+					return 1;
+				if (o1.getNet() < o2.getNet())
+					return -1;
+				
+				return 0;
+				
+			}
+		};
 	}
 }

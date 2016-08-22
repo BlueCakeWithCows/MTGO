@@ -13,7 +13,7 @@ public class Table extends JTable {
 	private static final String[] COLUMN_NAMES = { "Net", "Card Name", "Percent", "Buyer Price", "Seller Price",
 			"Buyer", "Seller", "Age", "Buyer Age", "Seller Age", "Buyer Source", "Seller Source", "Complete Trade" };
 	private TableColumnManager manager;
-	private DefaultTableModel model;
+	protected DefaultTableModel model;
 
 	public Table() {
 		super(new DefaultTableModel(COLUMN_NAMES, 0){
@@ -59,7 +59,7 @@ public class Table extends JTable {
 		this.setAutoCreateRowSorter(true);
 	}
 
-	private static Object[] createRay(CompleteTrade t) {
+	public static Object[] createRay(CompleteTrade t) {
 		return new Object[] { t.getNet(), t.getCardName(), t.getNetPercent(), t.getBuyerPrice(), t.getSellerPrice(),
 				t.getBuyer(), t.getSeller(), t.getAge(), t.getBuyerAge(), t.getSellerAge(), t.getBuyerSource(),
 				t.getSellerSource(), t };
@@ -68,7 +68,7 @@ public class Table extends JTable {
 	private TradeFilter filter;
 
 	public void setFilter(TradeFilter filter) {
-		this.filter = filter;
+		this.filter = filter;	
 	}
 
 	public void tryAddNewTrade(TradeInfo info) {

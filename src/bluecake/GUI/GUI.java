@@ -2,6 +2,7 @@ package bluecake.GUI;
 
 import java.awt.EventQueue;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -9,6 +10,7 @@ import javax.swing.border.EmptyBorder;
 import bluecake.misc.Log;
 
 import java.awt.GridLayout;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,24 +22,22 @@ public class GUI extends JFrame {
 	public static GUI gui;
 	private JPanel contentPane;
 	public Table table;
+
 	private final static String DEFAULT = "General";
 	private List<GUIHandle> guiHandles;
 
 	private JTabbedPane tabbedPane_Settings, tabbedPane_Consoles;
+	private JPanel filterTablePanel;
 
 	/**
 	 * Launch the application.
 	 */
 
-	public static void main(String[] args) {
-		createGUI();
-	}
-
-	public static void createGUI() {
+	public static void createGUI() throws InvocationTargetException, InterruptedException {
 		if (gui != null)
 			return;
 
-		EventQueue.invokeLater(new Runnable() {
+		EventQueue.invokeAndWait(new Runnable() {
 			public void run() {
 				try {
 					gui = new GUI();
@@ -71,8 +71,19 @@ public class GUI extends JFrame {
 
 		table = new Table();
 		scrollPane.setViewportView(table);
+		JScrollPane scrollPane3 = new JScrollPane();
+		tabbedPane.addTab("FilteredTable", null, scrollPane3, null);
+
 		tabbedPane_Consoles = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.addTab("Consoles", null, tabbedPane_Consoles, null);
+
+		FilteredTable tab = new FilteredTable();
+		scrollPane3.setViewportView(tab);
+		this.filterTablePanel = new JPanel();
+
+		filterTablePanel.add(tab.getUpdateButton());
+
+		scrollPane3.setRowHeaderView(filterTablePanel);
 
 		tabbedPane_Settings = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.addTab("Settings", null, tabbedPane_Settings, null);
@@ -86,7 +97,9 @@ public class GUI extends JFrame {
 
 		GUIHandle g = new GUIHandle(key, tabbedPane_Consoles, tabbedPane_Settings);
 		g.load();
-		guiHandles.add(g);
+		synchronized (guiHandles) {
+			guiHandles.add(g);
+		}
 		return g;
 	}
 
@@ -98,8 +111,10 @@ public class GUI extends JFrame {
 	public void log(int level, String identifier, String message) {
 		String levelString = getLevel(level);
 		message = levelString + "[" + identifier + "]: " + message;
-		for (GUIHandle g : guiHandles) {
-			g.log(identifier, message);
+		synchronized (guiHandles) {
+			for (GUIHandle g : guiHandles) {
+				g.log(identifier, message);
+			}
 		}
 		System.out.println(message);
 	}
