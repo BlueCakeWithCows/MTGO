@@ -129,7 +129,7 @@ public class WikipriceWebCrawler extends WebScanner {
 			log("Could not load page.");
 			return null;
 		}
-		TradeInfo info = parse(html, cardID);
+		TradeInfo info = parse(html, cardID,set);
 		return info;
 	}
 
@@ -146,18 +146,23 @@ public class WikipriceWebCrawler extends WebScanner {
 		return card;
 	}
 
-	public TradeInfo parse(String html_page, int cardID) {
+	public TradeInfo parse(String html_page, int cardID, String end) {
 
 		TradeInfo tInfo = new TradeInfo(IDENTIFIER);
 
 		String[] lines = html_page.split("\n");
 		String card = "";
 		try {
-
-			card = lines[96];
-			if (card.contains("<span class"))
-				card = lines[150];
-			card = cleanupCardString(card);
+			
+			for(int i = 0; i < lines.length; i ++){
+				if(lines[i].contains("<title>")){
+					String n = lines[i].split("\\<title\\>")[1];
+					n = n.split("\\|")[0];
+					card = n.trim() + " [" + end + "]";
+					break;
+				}
+			}
+			card= this.cleanupCardString(card);
 
 			for (int i = 0; i < lines.length; i++) {
 				if (lines[i].contains("collection_row sell_row group_boss bot  ") && tInfo.seller == null) {

@@ -3,6 +3,7 @@
 	<name>MTGO</name>
 	<comment></comment>
 	<projects>
+		<project>jmagick</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

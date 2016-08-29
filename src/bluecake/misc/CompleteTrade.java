@@ -108,28 +108,32 @@ public class CompleteTrade {
 	public boolean tryAdd(TradeInfo info) {
 		boolean s = false;
 		boolean b = false;
-		if (buyer == null || buyer.buyer == null) {
-			buyer = info;
-			b = true;
-		}
-		if (seller == null || seller.seller == null) {
-			seller = info;
-			s = true;
-		}
-		if (!s && info.seller != null) {
-			if (this.seller.sellerPrice > info.sellerPrice) {
-				this.seller = info;
-				s = true;
-			}
-		}
+		if (buyer != null)
+			System.out.println(buyer.source);
+		try {
 
-		if (!b && info.buyer != null) {
-			if (this.buyer.buyerPrice < info.buyerPrice) {
-				this.buyer = info;
+			if (buyer == null || buyer.buyer == null) {
+				buyer = info;
 				b = true;
 			}
+			if (seller == null || seller.seller == null) {
+				seller = info;
+				s = true;
+			}
+			if (!s && info.seller != null) {
+				if (this.seller.source.equals(info.source) || this.seller.sellerPrice > info.sellerPrice) {
+					this.seller = info;
+					s = true;
+				}
+			}
+			if (!b && info.buyer != null) {
+				if (this.buyer.source.equals(info.source) || this.buyer.buyerPrice < info.buyerPrice) {
+					this.buyer = info;
+					b = true;
+				}
+			}
+		} catch (Exception e) {
 		}
-
 		return (s || b);
 	}
 
@@ -148,9 +152,9 @@ public class CompleteTrade {
 					return 1;
 				if (o1.getNet() < o2.getNet())
 					return -1;
-				
+
 				return 0;
-				
+
 			}
 		};
 	}
