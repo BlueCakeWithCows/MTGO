@@ -19,6 +19,7 @@ import net.sourceforge.tess4j.util.LoadLibs;
 
 public class TempClient {
 	private MyRobot robot;
+	private MicroBot bot;
 	private static TempClient client;
 	private ImageScanner scanner;
 
@@ -36,7 +37,9 @@ public class TempClient {
 	private void start() {
 		initVariables();
 		
-
+		while(true){
+			bot.c
+		}
 		// ITesseract instance = new Tesseract1(); // JNA Direct Mapping
 		// File tessDataFolder = LoadLibs.extractTessResources("tessdata"); //
 		// Maven build bundles English data

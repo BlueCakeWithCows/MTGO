@@ -42,12 +42,38 @@ public class ImageScanner {
 			e1.printStackTrace();
 		}
 		try {
-			return instance.doOCR(image);
+			return getSpecial(instance.doOCR(image));
 		} catch (TesseractException e) {
 			e.printStackTrace();
 		}
 
 		return null;
 
+	}
+	public boolean scanFor(BufferedImage image,String s) {
+		if (!init)
+			init();
+		image = ImageHelper.scaleBy(image, 4f);
+		image = ImageHelper.rescaleOp(image, 1.2f, 0);
+		File outputfile = new File("test.png");
+		try {
+			ImageIO.write(image, "png", outputfile);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		try {
+			return instance.doOCR(image).contains(s);
+		} catch (TesseractException e) {
+			e.printStackTrace();
+		}
+
+		return false;
+
+	}
+	
+	private String getSpecial(String text){
+		text = text.replace("/Etherplasm","Ætherplasm");
+		return text;
 	}
 }
