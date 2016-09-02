@@ -128,7 +128,7 @@ public class Planner implements Runnable {
 				}
 
 				if (filter.check(trade)) {
-
+					gui.log("Passed Second Filter");
 					System.out.println(realList.add(trade));
 
 				}

@@ -1,6 +1,13 @@
 package bluecake.misc;
 
-public class TradeInfo {
+import java.io.Serializable;
+
+public class TradeInfo implements Serializable{
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -1778280440494239784L;
 
 	public TradeInfo(String source) {
 		creationTime = System.currentTimeMillis();

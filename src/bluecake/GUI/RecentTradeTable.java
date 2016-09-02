@@ -18,7 +18,7 @@ public class RecentTradeTable extends JTable implements Notifables {
 	protected DefaultTableModel model;
 
 	public RecentTradeTable() {
-		super();
+		super(new DefaultTableModel(COLUMN_NAMES, 0));
 		setup();
 		setVisible(true);
 	}

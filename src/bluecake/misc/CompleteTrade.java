@@ -1,11 +1,16 @@
 package bluecake.misc;
 
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Vector;
 
 import bluecake.util.Util;
 
-public class CompleteTrade {
+public class CompleteTrade implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 4310781816726979277L;
 	public TradeInfo buyer, seller;
 	public String card;
 
