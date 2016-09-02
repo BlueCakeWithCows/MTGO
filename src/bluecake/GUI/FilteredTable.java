@@ -12,11 +12,11 @@ import javax.swing.SwingUtilities;
 import bluecake.Main;
 import bluecake.misc.CompleteTrade;
 
-public class FilteredTable extends Table {
+public class FilteredTable extends Table{
 	FilteredTable() {
 		super();
 		init();
-
+ 
 	}
 
 	public void update(List<CompleteTrade> trades) {

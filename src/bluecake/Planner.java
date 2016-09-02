@@ -1,5 +1,6 @@
 package bluecake;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,21 +15,29 @@ import bluecake.client.Client;
 import bluecake.misc.CompleteTrade;
 import bluecake.misc.TradeFilter;
 import bluecake.misc.TradeInfo;
+import bluecake.util.SimpleSaveLoad;
 
 public class Planner implements Runnable {
 	// My job is to decide what is, and what is not, valuable to mankind
 	GUIHandle gui;
 	String id = "Planner";
-
+	private String file;
 	private List<CompleteTrade> realList;
 	private HashMap<String, Long> recentCards;
+	private List<Notifables> notifable;
+
+	public void registerNotif(Notifables notif) {
+		synchronized (notifable) {
+			notifable.add(notif);
+		}
+	}
 
 	public Planner() {
 		gui = GUI.gui.createAndAddGuiHandle(id);
 		realList = new ArrayList<>();
 		this.filter = this.createDefaultFilter();
-		recentCards = new HashMap<String,Long>();
-		
+		recentCards = new HashMap<String, Long>();
+		notifable = new ArrayList<Notifables>();
 	}
 
 	private TradeFilter filter;
@@ -38,6 +47,7 @@ public class Planner implements Runnable {
 	@Override
 	public void run() {
 		running = true;
+		loadRecent();
 		while (running) {
 			try {
 				Thread.sleep(60 * 1000);
@@ -46,12 +56,23 @@ public class Planner implements Runnable {
 			}
 			gui.log("Auto updating...");
 			logic();
-			if (Client.client == null)
-				Client.init(this);
+			notif();
 		}
 
 		running = false;
 		gui.log("Goodnight");
+	}
+
+	private void loadRecent() {
+		try {
+			List<String> list = SimpleSaveLoad.load(file);
+			for(String s : list){
+				String[] ss = s.split(":");
+				recentCards.put(ss[0], Long.valueOf(ss[1]));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public List<CompleteTrade> getList() {
@@ -59,6 +80,27 @@ public class Planner implements Runnable {
 		synchronized (realList) {
 			trade = new ArrayList<>(realList);
 		}
+		return trade;
+	}
+
+	public void unflag(String card) {
+		synchronized (recentCards) {
+			recentCards.put(card, (long) 0);
+			notif();
+		}
+		try {
+			SimpleSaveLoad.addOrReplace(file, card, "0");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public CompleteTrade getSingleTradeAndMark() {
+		CompleteTrade trade = realList.get(0);
+		synchronized (trade) {
+			realList.remove(trade);
+		}
+		flag(trade.card);
 		return trade;
 	}
 
@@ -98,18 +140,29 @@ public class Planner implements Runnable {
 		gui.log("Done updating. Entries: " + realList.size());
 	}
 
+	private void notif() {
+		synchronized (notifable) {
+			for (Notifables n : notifable)
+				n.ping();
+		}
+	}
+
 	public void flag(String card) {
 		recentCards.put(card, System.currentTimeMillis());
+		try {
+			SimpleSaveLoad.addOrReplace(file, card, String.valueOf(System.currentTimeMillis()));
+			notif();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
-	
-	private TradeFilter createDefaultFilter(){
+
+	private TradeFilter createDefaultFilter() {
 		TradeFilter f = new TradeFilter();
-		f.COMPLETE=true;
+		f.COMPLETE = true;
 		f.MAX_AGE = (long) (5 * 60 * 1000);
-		f.MAX_PRICE = 4f;
-		f.MIN_PERCENT_GAIN = .03f;
 		f.MIN_PROFIT_GAIN = .01f;
-		f.TIME_BETWEEN_IDENTICAL_CARDS=(long) (60*1000*60*6);
+		f.TIME_BETWEEN_IDENTICAL_CARDS = (long) (60 * 1000 * 60 * 6);
 		List<String> cList = new ArrayList<String>();
 		cList.add("Urza's");
 		cList.add("Mountain");
@@ -117,11 +170,11 @@ public class Planner implements Runnable {
 		cList.add("Forest");
 		cList.add("Island");
 		cList.add("Plains");
-		
-		f.cardBlacklist = cList;	
+
+		f.cardBlacklist = cList;
 		List<String> bList = new ArrayList<String>();
 		bList.add("HotListBot");
-		f.validBuyers = bList;	
+		f.validBuyers = bList;
 		List<String> sList = new ArrayList<String>();
 		sList.add("NinjaBots");
 		sList.add("botomagic");
@@ -129,7 +182,18 @@ public class Planner implements Runnable {
 		sList.add("MTGOCardMarket2");
 		sList.add("JBStore2");
 		sList.add("MTGOCardMarket");
-		f.validSellers = sList;	
+		f.validSellers = sList;
 		return f;
+	}
+
+	public List<Object[]> getRecentList() {
+		List<Object[]> ray= new ArrayList<Object[]>();
+		for(String key:recentCards.keySet()){
+			long time = recentCards.get(key);
+			if(!filter.checkAge(time)){
+				ray.add(new Object[]{key,time});
+			}
+		}
+		return ray;
 	}
 }

@@ -14,13 +14,17 @@ public class Main {
 	public static Planner planner;
 	public static void main(String[] agrs) throws InterruptedException, InvocationTargetException {
 		GUI.createGUI();
-
+		
 		manager = new ScannerManager();
 		planner = new Planner();
+		
 		Thread th = new Thread(manager);
 		th.start();
 		Thread p = new Thread(planner);
 		p.start();
+		(new Thread(new HTMLRequest())).start();
+		planner.registerNotif(GUI.gui.recentTable);
+		
 	}
 
 }

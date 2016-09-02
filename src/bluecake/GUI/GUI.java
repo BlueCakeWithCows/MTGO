@@ -7,6 +7,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import bluecake.Notifables;
 import bluecake.misc.Log;
 
 import java.awt.GridLayout;
@@ -28,6 +29,7 @@ public class GUI extends JFrame {
 
 	private JTabbedPane tabbedPane_Settings, tabbedPane_Consoles;
 	private JPanel filterTablePanel;
+	public RecentTradeTable recentTable;
 
 	/**
 	 * Launch the application.
@@ -87,7 +89,10 @@ public class GUI extends JFrame {
 
 		tabbedPane_Settings = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.addTab("Settings", null, tabbedPane_Settings, null);
-
+		JScrollPane scrollPane43 = new JScrollPane();
+		recentTable = new RecentTradeTable();
+		tabbedPane.add("Recents", scrollPane43);
+		scrollPane43.setViewportView(recentTable);
 		GUIHandle g = createAndAddGuiHandle(DEFAULT);
 		g.setLogAll(true);
 

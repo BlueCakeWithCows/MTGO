@@ -1,10 +1,14 @@
 package bluecake.util;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -115,15 +119,72 @@ public class SimpleSaveLoad {
 			}
 		}
 	}
-	/**Returns true if it created a file*/
+
+	/** Returns true if it created a file */
 	public static boolean createFileIfNoExist(String url, String string) {
 		url = folder + url;
 		File file = new File(url);
 		try {
-			file.createNewFile();
+			return file.createNewFile();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return false;
+	}
+
+	public static void addOrReplace(String url, String targetKey, String propery) throws IOException {
+		url = folder + url;
+		String newLine = targetKey + ":" + propery;
+		if (createFileIfNoExist(url, newLine))
+			return;
+		List<String> file = load(url);
+
+		boolean added = false;
+		for (int i = 0; i < file.size(); i++) {
+			String line = file.get(i);
+			String[] lineSplit = line.split(":");
+			String key = lineSplit[0];
+			String prop = line.replaceFirst(key + ":", "");
+			if (key.equals(targetKey)) {
+				file.set(i, newLine);
+				added = true;
+				break;
+			}
+		}
+		if (!added) {
+			append(url, newLine);
+		} else {
+			File temp = File.createTempFile("TempFile", ".tmp", new File("/"));
+			temp.deleteOnExit();
+			BufferedWriter out = new BufferedWriter(new FileWriter(temp));
+			for (String string : file)
+				out.write(string + System.lineSeparator());
+			out.close();
+			File original = new File(url);
+			FileChannel src = new FileInputStream(temp).getChannel();
+			FileChannel dest = new FileOutputStream(original).getChannel();
+			dest.transferFrom(src, 0, src.size());
+			src.close();
+			dest.close();
+		}
+
+	}
+
+	public static String getProperty(String url, String targetKey) {
+		List<String> file = null;
+		try {
+			file = load(url);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+		for (int i = 0; i < file.size(); i++) {
+			String line = file.get(i);
+			String[] lineSplit = line.split(":");
+			String key = lineSplit[0];
+			if (key.contentEquals(targetKey))
+				return line.replaceFirst(key + ":", "");
+		}
+		return null;
 	}
 }
