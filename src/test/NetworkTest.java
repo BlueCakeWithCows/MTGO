@@ -7,8 +7,7 @@ import bluecake.misc.CompleteTrade;
 
 public class NetworkTest {
 	public static void main(String[] args){
-		String hostName = args[0];
-		int portNumber = Integer.parseInt(args[1]);
+		
 
 		try {
 		    Socket echoSocket = new Socket("localhost", 4444);
@@ -20,9 +19,11 @@ public class NetworkTest {
 		    Object ob1 = in.readObject();
 		    if(ob1 instanceof CompleteTrade){
 		    	System.out.println(((CompleteTrade)ob1).toString());
+		    	System.out.println(((CompleteTrade) ob1).getBuyer());
 		    }else{
 		    	System.out.println("err: "+ ob1);
 		    }
+		    echoSocket.close();
 		}catch(Exception e){
 			e.printStackTrace();
 		}

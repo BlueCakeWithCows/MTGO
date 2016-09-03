@@ -26,6 +26,8 @@ public class RecentTradeTable extends JTable implements Notifables {
 	private void setup() {
 		model = (DefaultTableModel) this.getModel();
 		this.setAutoCreateRowSorter(true);
+		this.getColumn("Remove").setCellRenderer(new ButtonRenderer());
+		this.getColumn(identifier)
 	}
 
 	protected void updateListing(List<Object[]> list) {
