@@ -2,27 +2,29 @@ package bluecake.client;
 
 @SuppressWarnings("serial")
 public abstract class MTGOException extends Exception {
-	public class MTGOBotOfflineException extends MTGOException {
+
+	
+	public static class MTGOBotOfflineException extends MTGOException {
 
 	}
 
-	public class MTGORipOffException extends MTGOException {
+	public static class MTGORipOffException extends MTGOException {
 
 	}
 
-	public class MTGOTradeFailedException extends MTGOException {
+	public static class MTGOTradeFailedException extends MTGOException {
 
 	}
 
-	public class MTGOWrongScreenException extends MTGOException {
+	public static class MTGOWrongScreenException extends MTGOException {
 
 	}
 
-	public class MTGOConnectionFailedException extends MTGOException {
+	public static class MTGOConnectionFailedException extends MTGOException {
 
 	}
 
-	public class MTGOCannotFindCardException extends MTGOException {
+	public static class MTGOCannotFindCardException extends MTGOException {
 
 	}
 }

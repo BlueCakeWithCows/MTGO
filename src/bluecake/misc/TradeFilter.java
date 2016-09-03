@@ -15,19 +15,17 @@ public class TradeFilter {
 	public boolean check(CompleteTrade t) {
 		if (COMPLETE && !t.isComplete())
 			return false;
-
-		if (MAX_AGE != null && System.currentTimeMillis() < MAX_AGE + t.getCreationTime())
+		if (MAX_AGE != null && System.currentTimeMillis() -MAX_AGE>  t.getCreationTime())
 			return false;
-
-		if (MAX_PRICE != null && (t.getSellerPrice() != null || MAX_PRICE >= t.getSellerPrice()))
+		if (MAX_PRICE != null && (t.getSellerPrice() != null || MAX_PRICE <= t.getSellerPrice()))
 			return false;
-
-		if (MIN_PROFIT_GAIN != null && (t.getNet() != null || MIN_PROFIT_GAIN <= t.getNet()))
+		if(t.getNet() == null || t.getNetPercent()==null)
 			return false;
-
-		if (MIN_PERCENT_GAIN != null && (t.getNetPercent() != null || MIN_PERCENT_GAIN <= t.getNetPercent()))
+		if (MIN_PROFIT_GAIN != null && (MIN_PROFIT_GAIN >= t.getNet()))
 			return false;
-
+		
+		if (MIN_PERCENT_GAIN != null && (MIN_PERCENT_GAIN >= t.getNetPercent()))
+			return false;
 		return true;
 	}
 
@@ -35,9 +33,8 @@ public class TradeFilter {
 		if (cardBlacklist!= null && isBlackListed(info.source)) {
 			return false;
 		}
-		if (MAX_AGE != null && System.currentTimeMillis() < MAX_AGE + info.getCreationTime())
+		if (MAX_AGE != null && System.currentTimeMillis() - MAX_AGE> info.getCreationTime())
 			return false;
-
 		if (validBuyers == null || validBuyers.contains(info.buyer)) {
 			return true;
 		}
@@ -49,6 +46,8 @@ public class TradeFilter {
 	}
 	
 	public boolean isBlackListed(String card){
+		if(cardBlacklist ==null)
+			return false;
 		for(String s: cardBlacklist){
 			if(card.toLowerCase().contains(s.toLowerCase()))
 				return true;

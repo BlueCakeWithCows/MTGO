@@ -36,8 +36,15 @@ public class HotListWebScanner extends WebScanner {
 
 			while (running) {
 				HtmlPage page = getPage();
-				List<TradeInfo> tInfoList = getInfo(page.asText());
-				addCards(tInfoList);
+				try {
+					if (getPage() != null) {
+						List<TradeInfo> tInfoList = getInfo(page.asText());
+						addCards(tInfoList);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					log(e.getMessage());
+				}
 				sleep();
 			}
 

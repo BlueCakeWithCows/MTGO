@@ -11,6 +11,7 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import bluecake.client.MTGOException.MTGOConnectionFailedException;
 import bluecake.util.SimpleSaveLoad;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
@@ -18,8 +19,7 @@ import net.sourceforge.tess4j.TesseractException;
 import net.sourceforge.tess4j.util.LoadLibs;
 
 public class TempClient {
-	private MyRobot robot;
-	private MicroBot bot;
+	private BotManager bot;
 	private static TempClient client;
 	private ImageScanner scanner;
 
@@ -29,7 +29,8 @@ public class TempClient {
 	}
 
 	private void initVariables() {
-		robot = new MyRobot();
+		bot = new BotManager();
+
 		scanner = new ImageScanner();
 		scanner.init();
 	}
@@ -38,7 +39,12 @@ public class TempClient {
 		initVariables();
 		
 		while(true){
-			bot.c
+			try {
+				bot.doTrade(this);
+			} catch (MTGOConnectionFailedException e) {
+				e.printStackTrace();
+				break;
+			}
 		}
 		// ITesseract instance = new Tesseract1(); // JNA Direct Mapping
 		// File tessDataFolder = LoadLibs.extractTessResources("tessdata"); //

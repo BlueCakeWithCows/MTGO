@@ -121,8 +121,8 @@ public class SimpleSaveLoad {
 	}
 
 	/** Returns true if it created a file */
-	public static boolean createFileIfNoExist(String url, String string) {
-		url = folder + url;
+	public static boolean createFileIfNoExist(String urs, String string) {
+		String url = folder + urs;
 		File file = new File(url);
 		try {
 			return file.createNewFile();
@@ -132,11 +132,12 @@ public class SimpleSaveLoad {
 		return false;
 	}
 
-	public static void addOrReplace(String url, String targetKey, String propery) throws IOException {
-		url = folder + url;
+	public static void addOrReplace(String urs, String targetKey, String propery) throws IOException {
+
 		String newLine = targetKey + ":" + propery;
-		if (createFileIfNoExist(url, newLine))
+		if (createFileIfNoExist(urs, newLine))
 			return;
+		String url = urs;
 		List<String> file = load(url);
 
 		boolean added = false;
@@ -151,22 +152,22 @@ public class SimpleSaveLoad {
 				break;
 			}
 		}
-		if (!added) {
-			append(url, newLine);
-		} else {
-			File temp = File.createTempFile("TempFile", ".tmp", new File("/"));
-			temp.deleteOnExit();
-			BufferedWriter out = new BufferedWriter(new FileWriter(temp));
-			for (String string : file)
-				out.write(string + System.lineSeparator());
-			out.close();
-			File original = new File(url);
-			FileChannel src = new FileInputStream(temp).getChannel();
-			FileChannel dest = new FileOutputStream(original).getChannel();
-			dest.transferFrom(src, 0, src.size());
-			src.close();
-			dest.close();
-		}
+		if (!added)
+			file.add(newLine);
+		// File temp = File.createTempFile("TempFisle", ".tmp", new File("/"));
+
+		// temp.deleteOnExit();
+		File temp = new File(folder + url);
+		BufferedWriter out = new BufferedWriter(new FileWriter(temp));
+		for (String string : file)
+			out.write(string + System.lineSeparator());
+		out.close();
+		// File original = new File(folder + url);
+		// FileChannel src = new FileInputStream(temp).getChannel();
+		// FileChannel dest = new FileOutputStream(original).getChannel();
+		// dest.transferFrom(src, 0, src.size());
+		// src.close();
+		// dest.close();
 
 	}
 

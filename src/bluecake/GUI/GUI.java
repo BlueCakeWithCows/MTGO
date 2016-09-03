@@ -23,7 +23,7 @@ public class GUI extends JFrame {
 	public static GUI gui;
 	private JPanel contentPane;
 	public Table table;
-
+	public FilteredTable filteredTable;
 	private final static String DEFAULT = "General";
 	private List<GUIHandle> guiHandles;
 
@@ -79,11 +79,11 @@ public class GUI extends JFrame {
 		tabbedPane_Consoles = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.addTab("Consoles", null, tabbedPane_Consoles, null);
 
-		FilteredTable tab = new FilteredTable();
-		scrollPane3.setViewportView(tab);
+		 filteredTable = new FilteredTable();
+		scrollPane3.setViewportView(filteredTable);
 		this.filterTablePanel = new JPanel();
 
-		filterTablePanel.add(tab.getUpdateButton());
+		filterTablePanel.add(filteredTable.getUpdateButton());
 
 		scrollPane3.setRowHeaderView(filterTablePanel);
 

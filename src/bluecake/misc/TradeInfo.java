@@ -10,6 +10,7 @@ public class TradeInfo implements Serializable{
 	private static final long serialVersionUID = -1778280440494239784L;
 
 	public TradeInfo(String source) {
+		this.source =source;
 		creationTime = System.currentTimeMillis();
 	}
 

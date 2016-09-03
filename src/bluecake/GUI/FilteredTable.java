@@ -10,12 +10,13 @@ import javax.swing.JButton;
 import javax.swing.SwingUtilities;
 
 import bluecake.Main;
+import bluecake.Notifables;
 import bluecake.misc.CompleteTrade;
 
-public class FilteredTable extends Table{
+public class FilteredTable extends Table implements Notifables{
 	FilteredTable() {
 		super();
-		init();
+
  
 	}
 
@@ -60,13 +61,11 @@ public class FilteredTable extends Table{
 		}
 	}
 	private void init(){
-		 int delay = 1000*30; //milliseconds
-		  TimerTask taskPerformer = new TimerTask() {
-			@Override
-			public void run() {
-				 update(Main.planner.getList());
-			}
-		  };
-		  new Timer().schedule(taskPerformer, delay, delay);
+		
+	}
+
+	@Override
+	public void ping() {
+		this.update(Main.planner.getList());
 	}
 }

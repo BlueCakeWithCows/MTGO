@@ -35,7 +35,7 @@ public class Planner implements Runnable {
 	public Planner() {
 		gui = GUI.gui.createAndAddGuiHandle(id);
 		realList = new ArrayList<>();
-		this.filter = this.createDefaultFilter();
+		this.filter = this.getDefaultFilter();
 		recentCards = new HashMap<String, Long>();
 		notifable = new ArrayList<Notifables>();
 	}
@@ -66,7 +66,7 @@ public class Planner implements Runnable {
 	private void loadRecent() {
 		try {
 			List<String> list = SimpleSaveLoad.load(file);
-			for(String s : list){
+			for (String s : list) {
 				String[] ss = s.split(":");
 				recentCards.put(ss[0], Long.valueOf(ss[1]));
 			}
@@ -157,11 +157,12 @@ public class Planner implements Runnable {
 		}
 	}
 
-	private TradeFilter createDefaultFilter() {
+	public static TradeFilter getDefaultFilter() {
 		TradeFilter f = new TradeFilter();
 		f.COMPLETE = true;
 		f.MAX_AGE = (long) (5 * 60 * 1000);
 		f.MIN_PROFIT_GAIN = .01f;
+		f.MIN_PERCENT_GAIN = .03f;
 		f.TIME_BETWEEN_IDENTICAL_CARDS = (long) (60 * 1000 * 60 * 6);
 		List<String> cList = new ArrayList<String>();
 		cList.add("Urza's");
@@ -181,17 +182,18 @@ public class Planner implements Runnable {
 		sList.add("shop_pearl");
 		sList.add("MTGOCardMarket2");
 		sList.add("JBStore2");
+		sList.add("JBStore3");
 		sList.add("MTGOCardMarket");
 		f.validSellers = sList;
 		return f;
 	}
 
 	public List<Object[]> getRecentList() {
-		List<Object[]> ray= new ArrayList<Object[]>();
-		for(String key:recentCards.keySet()){
+		List<Object[]> ray = new ArrayList<Object[]>();
+		for (String key : recentCards.keySet()) {
 			long time = recentCards.get(key);
-			if(!filter.checkAge(time)){
-				ray.add(new Object[]{key,time});
+			if (!filter.checkAge(time)) {
+				ray.add(new Object[] { key, time });
 			}
 		}
 		return ray;
