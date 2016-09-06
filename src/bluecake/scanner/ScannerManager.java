@@ -32,7 +32,8 @@ public class ScannerManager implements Runnable {
 	public void run() {
 		addScanner(new WikipriceWebCrawler());
 		addScanner(new HotListWebScanner());
-
+		addScanner(new DojoScanner());
+		addScanner(new ClanTeamScanner());
 		while (true) {
 			collectRecentFromScanners();
 			try {
@@ -106,11 +107,12 @@ public class ScannerManager implements Runnable {
 							createRecentEntryIfNeeded(i.card);
 							recentUpdate.get(i.card).put(i.getSource(), i);
 							GUI.gui.table.tryAddNewTrade(i);
-							
-							for(WebScanner w:scanners){
-								if (!i.getSource().equalsIgnoreCase(w	.identifier)) {
-									w.requestCard(i.card);
-								}
+
+							for (WebScanner w : scanners) {
+								if (i.getSource().equals(HotListWebScanner.source))
+									if (!i.getSource().equalsIgnoreCase(w.identifier)) {
+										w.requestCard(i.card);
+									}
 							}
 						}
 					}

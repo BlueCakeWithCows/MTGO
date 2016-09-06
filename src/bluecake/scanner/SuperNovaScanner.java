@@ -1,39 +1,91 @@
 package bluecake.scanner;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 import com.gargoylesoftware.htmlunit.BrowserVersion;
-import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 
 import bluecake.misc.TradeInfo;
 
-public class HotListWebScanner extends WebScanner {
-	public static final String source = "HotList";
-	private final String URL = "http://www.mtgotraders.com/hotlist/";
+public class SuperNovaScanner extends WebScanner {
+	private final String URL = "https://www.dojotradebots.com/pricelist";
 	private WebClient webClient;
 
-	public HotListWebScanner() {
-		super(source);
+	public SuperNovaScanner() {
+		super("SuperNova");
+	}
+	
+	public static void main(String[] args){
+		
+	}
+
+
+
+	private Float pTD(String s) {
+		if (s.length() > 1)
+			return Float.valueOf(s);
+		return null;
+	}
+
+	private TradeInfo readRow(String string) {
+		String[] s = string.split("	");
+		String set = s[0];
+		String name = s[1];
+		String card = name + " [" + set + "]";
+		Float sel = pTD(s[3]);
+		;
+		Float buy = pTD(s[4]);
+		;
+		String buyer = getBuyer(s[5]);
+		String seller = getSeller(s[5]);
+
+		TradeInfo info = new TradeInfo(identifier);
+		info.setCard(card);
+		info.setSell(seller, (Float) sel);
+		info.setBuy(buyer, buy);
+		return info;
+	}
+
+	private String getSeller(String string) {
+		String[] split = string.split(",");
+		for (String s : split) {
+			if (s.contains("DTS")) {
+				s = s.replace("DTS", "_DojoTradeSelling");
+				s = s.split("\\[")[0];
+				return s;
+			}
+		}
+		return null;
+	}
+
+	private String getBuyer(String string) {
+		String[] split = string.split(",");
+		for (String s : split) {
+			if (s.contains("DTB")) {
+				s = s.replace("DTB", "_DojoTradeBuying");
+				s = s.split("\\[")[0];
+				return s;
+			}
+		}
+		return null;
 	}
 
 	private void load() {
 		this.setCardUpdateTime(300);
 		running = true;
 		log("Loaded");
+		webClient = configWebClient();
+
 	}
 
 	@Override
 	public void run() {
 		try {
 			load();
-			webClient = configWebClient();
 
 			while (running) {
 				HtmlPage page = getPage();
@@ -63,31 +115,25 @@ public class HotListWebScanner extends WebScanner {
 	}
 
 	private List<TradeInfo> getInfo(String text) {
+		System.out.println(text);
 		String[] lines = text.split(System.lineSeparator());
 		int i = 0;
 		for (; i < lines.length;) {
-			if (lines[i].contains("Price")) {
+			if (lines[i].contains("Set") && lines[i].contains("Rarity")) {
+				i++;
 				break;
 			}
 			i++;
 		}
 		List<TradeInfo> list = new ArrayList<TradeInfo>();
-		while (true) {
-			i++;
-			String[] split = lines[i].split("\t");
-			if (split.length != 4)
-				break;
-
-			TradeInfo tInfo = new TradeInfo(identifier);
-			tInfo.setCard(split[1] + " [" + split[0] + "]");
-			tInfo.setBuy("HotListBot", Float.valueOf(split[3]));
-
+		while(lines[i].length()>0) {
+			TradeInfo tInfo = this.readRow(lines[i]);
 			list.add(tInfo);
 			log(tInfo.toString());
-
+			i++;
 		}
 
-		log("Done parsing hotlist: " + URL);
+		log("Done parsing DojoBot: " + URL);
 		return list;
 	}
 
@@ -99,24 +145,15 @@ public class HotListWebScanner extends WebScanner {
 
 			webClient.waitForBackgroundJavaScript(30000);
 			log("Running Javascript.");
-			page.executeJavaScript("filterNonFoils()");
-
-			HtmlAnchor div = page.getFirstByXPath(
-					"//*[@id=\"mainContent\"]/div[2]/div[1]/div[2]/div[4]/div[1]/span[2]/span/ul/li[5]/a");
-
-			page = div.click();
-
-			page.getFirstByXPath("//*[@id=\"toolbar\"]/label[3]/input");
-			page.getElementById("toolbar").click();
+			HtmlInput a = (HtmlInput) page.getElementById("TextCardName");
+			a.setValueAttribute("");
+			a.focus();
+			page = (HtmlPage) a.type('\n');
+			webClient.waitForBackgroundJavaScript(30000);
 			return page;
-		} catch (FailingHttpStatusCodeException e) {
-			gui.log(e.getMessage());
-		} catch (MalformedURLException e) {
-			gui.log(e.getMessage());
-		} catch (IOException e) {
-			gui.log(e.getMessage());
+		} catch (Exception e) {
+
 		}
-		gui.log("Failed to load page: " + URL);
 		return null;
 	}
 

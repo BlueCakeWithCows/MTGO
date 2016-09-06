@@ -15,38 +15,44 @@ public class BotManager {
 	int ticketsWithdrawn = 0;
 
 	/** This represents a perfect run */
+	public BotManager() {
+		bot = new MicroBot();
+	}
 
 	public void doTrade(TempClient client) throws MTGOException.MTGOConnectionFailedException {
-
+		
+		bot.setBuyBinderToActive();
 		bot.countTicketsInBuyBinder();
-
+		
 		CompleteTrade trade = getTrade();
-		while(trade==null){
-			TempClient.sleep(10);
+		
+		while (trade == null) {
+			TempClient.sleep(30);
 			trade = getTrade();
 		}
 		double buyErrorMargin = trade.seller.sellerPrice + trade.getNet();
 		double profit = 0, net = 0, expense = 0;
 		int qty = 0;
-
+		
 		try {
 			bot.confirmBotOnline(trade.getBuyer());
-			bot.confirmBotOnline(trade.getSeller());
 		} catch (MTGOException.MTGOBotOfflineException e) {
 			log("One of bots are offline. Cancelling " + trade.card);
 			return;
 		}
-
+		
 		try {
 			bot.connectToBot(trade.getSeller());
+			log("Connected to Buyer");
 			Object[] qtyAndCost = bot.buyCardIfUnder(trade.card, buyErrorMargin);
 			expense = (double) qtyAndCost[1];
 			qty = (int) qtyAndCost[0];
 			log("Bought " + trade.card + " x" + qty + " for a total of " + expense);
 
 			try {
-				bot.addCardToSellBinder(trade.card);
 				bot.setSellBinderToActive();
+				bot.addCardToSellBinder(trade.card);
+				bot.connectToBot("HotListBot");//trade.getBuyer()
 				profit = bot.sellAllNoMatterPrice((int) (expense + 2));
 
 				log("Sold inventory for " + profit);
@@ -75,7 +81,7 @@ public class BotManager {
 	}
 
 	private void log(String s) {
-
+		System.out.println(s);
 	}
 
 	private CompleteTrade getTrade() {
@@ -91,7 +97,7 @@ public class BotManager {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			
+
 		}
 		return object;
 

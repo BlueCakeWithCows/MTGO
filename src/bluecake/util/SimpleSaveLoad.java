@@ -188,4 +188,8 @@ public class SimpleSaveLoad {
 		}
 		return null;
 	}
+
+	public static String getURL() {
+		return folder;
+	}
 }

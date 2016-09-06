@@ -26,7 +26,8 @@ public abstract class WebScanner implements Runnable {
 		this.requestedCards = new ArrayList<String>();
 		this.identifier = identifier;
 		THREADED_DELETE = true;
-		gui = GUI.gui.createAndAddGuiHandle(identifier);
+		if (GUI.gui != null)
+			gui = GUI.gui.createAndAddGuiHandle(identifier);
 	}
 
 	public boolean hasEnoughTimeHasPassedToUpdateTradeInfo(String card) {
@@ -77,17 +78,18 @@ public abstract class WebScanner implements Runnable {
 	}
 
 	protected void log(int level, String message) {
-		GUI.gui.log(level, identifier, message);
+		if (GUI.gui != null)
+			GUI.gui.log(level, identifier, message);
+		else System.out.println(message);
 	}
 
 	protected String getAndRemoveRequest() {
 		synchronized (requestedCards) {
 			String card;
-			if (requestedCards.size() > 0){
+			if (requestedCards.size() > 0) {
 				card = requestedCards.get(0);
-				
-			}
-			else
+
+			} else
 				return null;
 
 			while (requestedCards.remove(card)) {
@@ -100,7 +102,7 @@ public abstract class WebScanner implements Runnable {
 	public void requestCard(String card) {
 		synchronized (requestedCards) {
 			requestedCards.add(card);
-			
+
 		}
 	}
 

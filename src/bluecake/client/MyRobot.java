@@ -39,7 +39,6 @@ public class MyRobot implements ClipboardOwner {
 	}
 
 	public Point getPoint() {
-		System.out.println(MouseInfo.getPointerInfo().getLocation());
 		return MouseInfo.getPointerInfo().getLocation();
 	}
 
@@ -105,5 +104,9 @@ public class MyRobot implements ClipboardOwner {
 		robot.setAutoDelay(50);
 		click();
 		robot.setAutoDelay(500);
+	}
+
+	public Robot getRobot() {
+		return robot;
 	}
 }

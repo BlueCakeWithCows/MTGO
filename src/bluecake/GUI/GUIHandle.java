@@ -36,6 +36,8 @@ public class GUIHandle {
 		if (logAll || key.equalsIgnoreCase(identifier)) {
 			SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
+					if(console.getLineCount()>500)
+						console.setText("");
 					console.append(text + "\n");
 				}
 			});

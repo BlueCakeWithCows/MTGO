@@ -56,7 +56,7 @@ public class WikipriceWebCrawler extends WebScanner {
 
 	/** Return false if irrecoverable error */
 	private boolean load() {
-		this.setCardUpdateTime(60 * 60);
+		this.setCardUpdateTime(15 * 60);
 
 		log("Loading Sets: " + sets);
 		if (!loadSets(sets))
@@ -129,7 +129,7 @@ public class WikipriceWebCrawler extends WebScanner {
 			log("Could not load page.");
 			return null;
 		}
-		TradeInfo info = parse(html, cardID,set);
+		TradeInfo info = parse(html, cardID, set);
 		return info;
 	}
 
@@ -153,16 +153,16 @@ public class WikipriceWebCrawler extends WebScanner {
 		String[] lines = html_page.split("\n");
 		String card = "";
 		try {
-			
-			for(int i = 0; i < lines.length; i ++){
-				if(lines[i].contains("<title>")){
+
+			for (int i = 0; i < lines.length; i++) {
+				if (lines[i].contains("<title>")) {
 					String n = lines[i].split("\\<title\\>")[1];
 					n = n.split("\\|")[0];
 					card = n.trim() + " [" + end + "]";
 					break;
 				}
 			}
-			card= this.cleanupCardString(card);
+			card = this.cleanupCardString(card);
 
 			for (int i = 0; i < lines.length; i++) {
 				if (lines[i].contains("collection_row sell_row group_boss bot  ") && tInfo.seller == null) {
@@ -234,33 +234,38 @@ public class WikipriceWebCrawler extends WebScanner {
 		running = true;
 		this.skipWait = false;
 		this.load();
-
-		while (running) {
-			Pair<String, Integer> card;
-			// May be a problem with the following line
-			while (!(card = this.chooseNextCard()).getLeft().equalsIgnoreCase("")) {
-				if (this.hasEnoughTimeHasPassedToUpdateTradeInfo(card.getLeft()))
-					break;
-			}
-			TradeInfo trade = this.getCard(card.getLeft(), card.getRight());
-			if (trade != null)
-				this.addTradeInfo(trade);
-			try {
-				if (skipWait)
-					;
-				else {
-					if (failed_trade_counter > 2)
-						Thread.sleep((long) (TOO_MANY_REQUESTS_DELAY * 1000));
-					else
-						Thread.sleep((long) (DELAY_BETWEEN_PAGE_LOADS * 1000));
+		try {
+			while (running) {
+				Pair<String, Integer> card;
+				// May be a problem with the following line
+				while (!(card = this.chooseNextCard()).getLeft().equalsIgnoreCase("")) {
+					if (this.hasEnoughTimeHasPassedToUpdateTradeInfo(card.getLeft()))
+						break;
 				}
+				TradeInfo trade = this.getCard(card.getLeft(), card.getRight());
+				if (trade != null)
+					this.addTradeInfo(trade);
+				try {
+					if (skipWait)
+						;
+					else {
+						if (failed_trade_counter > 2)
+							Thread.sleep((long) (TOO_MANY_REQUESTS_DELAY * 1000));
+						else
+							Thread.sleep((long) (DELAY_BETWEEN_PAGE_LOADS * 1000));
+					}
 
-			} catch (InterruptedException ex) {
-				Thread.currentThread().interrupt();
+				} catch (InterruptedException ex) {
+					Thread.currentThread().interrupt();
+				}
+				skipWait = false;
 			}
-			skipWait = false;
+		} catch (Exception e) {
+			log(e.getMessage());
+		}finally{
+			log("Goodnight");
+			running = false;
 		}
-		running = false;
 	}
 
 	private List<String[]> versions;
@@ -329,7 +334,7 @@ public class WikipriceWebCrawler extends WebScanner {
 		}
 
 		for (String s : CardIDIndex.keySet()) {
-			System.out.println(s);
+			log(s);
 		}
 		return true;
 	}

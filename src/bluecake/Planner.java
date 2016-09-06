@@ -36,8 +36,20 @@ public class Planner implements Runnable {
 		gui = GUI.gui.createAndAddGuiHandle(id);
 		realList = new ArrayList<>();
 		this.filter = this.getDefaultFilter();
+		gui.log("BlackListed Cards");
+		dumpLog(filter.cardBlacklist);
+		gui.log("Sellers");
+		dumpLog(filter.validSellers);
+		gui.log("Buyers");
+		dumpLog(filter.validBuyers);
 		recentCards = new HashMap<String, Long>();
 		notifable = new ArrayList<Notifables>();
+	}
+
+	private void dumpLog(List<String> list) {
+		for (String s : list) {
+			gui.log(s);
+		}
 	}
 
 	private TradeFilter filter;
@@ -96,6 +108,8 @@ public class Planner implements Runnable {
 	}
 
 	public CompleteTrade getSingleTradeAndMark() {
+		if (realList.size() < 1)
+			return null;
 		CompleteTrade trade = realList.get(0);
 		synchronized (trade) {
 			realList.remove(trade);
@@ -114,7 +128,6 @@ public class Planner implements Runnable {
 			realList.clear();
 
 			HashMap<String, HashMap<String, TradeInfo>> bigMap = Main.manager.getMaster();
-			System.out.println(bigMap.keySet().size());
 			int i = 0;
 			for (String card : bigMap.keySet()) {
 
@@ -122,15 +135,12 @@ public class Planner implements Runnable {
 				for (TradeInfo source : bigMap.get(card).values()) {
 					if (filter.check(source) && (!recentCards.containsKey(source.card)
 							|| filter.checkAge(recentCards.get(source.card)))) {
-						gui.log("Passed First Filter");
 						trade.tryAdd(source);
 					}
 				}
 
 				if (filter.check(trade)) {
-					gui.log("Passed Second Filter");
-					System.out.println(realList.add(trade));
-
+					realList.add(trade);
 				}
 
 			}
@@ -163,28 +173,22 @@ public class Planner implements Runnable {
 		f.MAX_AGE = (long) (5 * 60 * 1000);
 		f.MIN_PROFIT_GAIN = .01f;
 		f.MIN_PERCENT_GAIN = .03f;
-		f.TIME_BETWEEN_IDENTICAL_CARDS = (long) (60 * 1000 * 60 * 6);
-		List<String> cList = new ArrayList<String>();
-		cList.add("Urza's");
-		cList.add("Mountain");
-		cList.add("Swamp");
-		cList.add("Forest");
-		cList.add("Island");
-		cList.add("Plains");
+		f.TIME_BETWEEN_IDENTICAL_CARDS = (long) (60 * 1000 * 60 * 4);
 
-		f.cardBlacklist = cList;
-		List<String> bList = new ArrayList<String>();
-		bList.add("HotListBot");
-		f.validBuyers = bList;
-		List<String> sList = new ArrayList<String>();
-		sList.add("NinjaBots");
-		sList.add("botomagic");
-		sList.add("shop_pearl");
-		sList.add("MTGOCardMarket2");
-		sList.add("JBStore2");
-		sList.add("JBStore3");
-		sList.add("MTGOCardMarket");
-		f.validSellers = sList;
+		try {
+			List<String> cList = SimpleSaveLoad.load("filter/BlackList.txt");
+			f.cardBlacklist = cList;
+			f.cardBlacklist = cList;
+			List<String> sList;
+			sList = SimpleSaveLoad.load("filter/WhiteList.txt");
+			f.validSellers = sList;
+			List<String> bList = SimpleSaveLoad.load("filter/WhiteListBuyer.txt");
+			f.validBuyers = bList;
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+
 		return f;
 	}
 

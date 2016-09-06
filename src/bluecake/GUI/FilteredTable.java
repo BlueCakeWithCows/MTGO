@@ -47,7 +47,6 @@ public class FilteredTable extends Table implements Notifables{
 	protected void updateListing() {
 		Main.planner.forceUpdate();
 		this.update(Main.planner.getList());
-		System.out.println("we");
 	}
 
 	@SuppressWarnings("serial")

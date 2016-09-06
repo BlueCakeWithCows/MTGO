@@ -16,7 +16,7 @@ public class Main {
 	public static void main(String[] agrs) throws InterruptedException, InvocationTargetException {
 		GUI.createGUI();
 
-		manager = new ScannerManager();
+		manager = new ScannerManager();	
 		planner = new Planner();
 
 		Thread th = new Thread(manager);

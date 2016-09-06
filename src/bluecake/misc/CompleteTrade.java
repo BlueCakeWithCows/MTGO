@@ -113,8 +113,7 @@ public class CompleteTrade implements Serializable{
 	public boolean tryAdd(TradeInfo info) {
 		boolean s = false;
 		boolean b = false;
-		if (buyer != null)
-			System.out.println(buyer.source);
+		
 		try {
 
 			if (buyer == null || buyer.buyer == null) {

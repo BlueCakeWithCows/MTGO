@@ -13,12 +13,21 @@ public class TradeFilter {
 
 	/** Blacklist and other lists not done */
 	public boolean check(CompleteTrade t) {
+		if (isBlackListed(t.card)) {
+			return false;
+		}
 		if (COMPLETE && !t.isComplete())
 			return false;
 		if (MAX_AGE != null && System.currentTimeMillis() -MAX_AGE>  t.getCreationTime())
 			return false;
 		if (MAX_PRICE != null && (t.getSellerPrice() != null || MAX_PRICE <= t.getSellerPrice()))
 			return false;
+		if(validBuyers!=null && !validBuyers.contains(t.getBuyer())){
+			return false;
+		}
+		if(validSellers!=null && !validSellers.contains(t.getSeller())){
+			return false;
+		}
 		if(t.getNet() == null || t.getNetPercent()==null)
 			return false;
 		if (MIN_PROFIT_GAIN != null && (MIN_PROFIT_GAIN >= t.getNet()))
@@ -30,7 +39,7 @@ public class TradeFilter {
 	}
 
 	public boolean check(TradeInfo info) {
-		if (cardBlacklist!= null && isBlackListed(info.source)) {
+		if (isBlackListed(info.card)) {
 			return false;
 		}
 		if (MAX_AGE != null && System.currentTimeMillis() - MAX_AGE> info.getCreationTime())

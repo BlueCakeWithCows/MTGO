@@ -2,19 +2,18 @@ package bluecake.client;
 
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.Robot;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 
-import com.gargoylesoftware.htmlunit.javascript.host.Location;
-
+import bluecake.client.Locations.ImageMark;
 import bluecake.client.MTGOException.MTGOBotOfflineException;
 import bluecake.client.MTGOException.MTGOCannotFindCardException;
 import bluecake.client.MTGOException.MTGORipOffException;
 import bluecake.client.MTGOException.MTGOTradeFailedException;
+import bluecake.util.SimpleSaveLoad;
 
 public class MicroBot {
-	private MyRobot rob;
+	public MyRobot rob;
 	private ImageScanner scanner;
 
 	public MicroBot() {
@@ -33,34 +32,67 @@ public class MicroBot {
 		activateBinder();
 	}
 
-	public void confirmBotOnline(String bot) throws MTGOBotOfflineException {
-		rob.moveTo(Locations.TRADE_BUTTON);
+	private int countNumberOfBots() {
+		String string = scanner.scan(rob.getScreen(Locations.NumberOfTradePeople));
+		string = string.replaceAll("Posts", "");
+		string = string.trim();
 
-		rob.click();
-		this.sleep(3000);
-		rob.moveTo(Locations.TRADE_SEARCH_BUTTON);
+		int count = Integer.valueOf(string);
+		return count;
+	}
+
+	public void clickDeleteAndType(Point l, String string) {
+		rob.moveTo(l);
 		rob.click();
 		rob.press(KeyEvent.VK_BACK_SPACE);
-		rob.type(bot);
+		rob.type(string);
 		rob.enter();
-		try {
-			for (int i = 0; i < 3; i++) {
-				rob.moveTo(Locations.BUDDIES_BUTTON);
-				rob.click();
-				rob.moveTo(Locations.TRADE_BUTTON);
-				this.sleep(3000);
-				String string = scanner.scan(rob.getScreen(Locations.NumberOfTradePeople));
-				string = string.replaceAll("Posts", "");
-				string = string.trim();
+	}
 
-				int count = Integer.valueOf(string);
-				if (count > 0)
-					return;
-			}
+	private static final int TRADE_TAB = 1;
 
-		} catch (Exception e) {
-			e.printStackTrace();
+	public void gotoTab(int tab) {
+		if (tab == getTab())
+			return;
+		switch (tab) {
+		case TRADE_TAB:
+			rob.moveTo(Locations.TRADE_BUTTON);
+			break;
 		}
+		rob.click();
+		waitTillTabLoads(tab);
+	}
+
+	private int getTab() {
+		if (Locations.TRADE_BUTTON_IMAGEMARK.getMatch(rob.getRobot()))
+			return TRADE_TAB;
+		return 0;
+	}
+
+	private void waitTillTabLoads(int tab) {
+		ImageMark mark = null;
+		switch (tab) {
+		case TRADE_TAB:
+			mark = Locations.TRADE_BUTTON_IMAGEMARK;
+			break;
+		}
+
+		while (!mark.getMatch(rob.getRobot())) {
+			sleep(100);
+		}
+		sleep(200);
+	}
+
+	public void confirmBotOnline(String bot) throws MTGOBotOfflineException {
+		gotoTab(TRADE_TAB);
+		clickDeleteAndType(Locations.TRADE_SEARCH_BUTTON, bot);
+		for (int i = 0; i < 5; i++) {
+			if (0 != this.countNumberOfBots())
+				return;
+			sleep(20 + i * 10);
+			rob.enter();
+		}
+
 		throw new MTGOException.MTGOBotOfflineException();
 
 	}
@@ -68,39 +100,76 @@ public class MicroBot {
 	private void acceptTrade() throws MTGOTradeFailedException {
 		rob.moveTo(Locations.INTRADE_CONFIRM);
 		rob.click();
-		this.sleep(2000);
+		this.sleep(11000);
 		rob.click();
 		this.sleep(1500);
-
+		if (this.inTradeWindow()) {
+			this.exitScreen();
+			throw new MTGOException.MTGOTradeFailedException();
+		}
 		if (tradeCancelled()) {
 			rob.enter();
 			throw new MTGOException.MTGOTradeFailedException();
 		}
 		rob.enter();
+		rob.moveTo(300, 300);
+		rob.click();
+		rob.escape();
+		rob.enter();
 	}
 
-	public void connectToBot(String bot) throws MTGOBotOfflineException {
-		this.confirmBotOnline(bot);
-		rob.moveTo(Locations.TRADE_TRADE_BUTTON);
+	public void moveAndClick(Point p) {
+		rob.moveTo(p);
 		rob.click();
-		boolean loop = true;
-		while (loop) {
-			rob.moveTo(Locations.TRADE_TRADE_BUTTON);
-			rob.quickClick();
-			this.sleep(500);
-			while (loop) {
-				BufferedImage img = rob.getScreen(Locations.TradeBox);
+	}
 
-				boolean invit = scanner.scanFor(img, "Trade Invitation");
-				boolean cancel = scanner.scanFor(img, "Trade Canceled");
-				if (!invit && !cancel)
-					loop = false;
-				else if (cancel) {
+	public boolean inTradeWindow() {
+		return scanner.scanFor(rob.getScreen(Locations.TradeCorner), "Trade");
+	}
+
+	private static final int TRADE_STATUS_IN_TRADE = 4, TRADE_STATUS_PENDING = 3, TRADE_STATUS_CANCELLED = 2,
+			TRADE_STATUS_NONE = 0;
+
+	private int getTradeConnectingStatus() {
+		if (inTradeWindow())
+			return TRADE_STATUS_IN_TRADE;
+
+		BufferedImage img = rob.getScreen(Locations.TradeBox);
+		String string = scanner.scan(img);
+
+		if (string.contains("Trade Invitation"))
+			return TRADE_STATUS_PENDING;
+
+		if (string.contains("Trade Canceled"))
+			return TRADE_STATUS_CANCELLED;
+
+		return TRADE_STATUS_NONE;
+	}
+
+	public void connectToBot(String bot) throws MTGOBotOfflineException, MTGOTradeFailedException {
+		this.gotoTab(TRADE_TAB);
+		this.confirmBotOnline(bot);
+
+		for (int i = 0; i < 30; i++) {
+			this.moveAndClick(Locations.TRADE_SEARCH_BUTTON);
+			rob.enter();
+			this.moveAndClick(Locations.TRADE_TRADE_BUTTON);
+			this.sleep(200);
+			int status = getTradeConnectingStatus();
+			System.out.println("Trade Status: " + status);
+			if (status != MicroBot.TRADE_STATUS_NONE) {
+				while (status == TRADE_STATUS_PENDING) {
+					status = getTradeConnectingStatus();
+					this.sleep(200);
+				}
+				if (TRADE_STATUS_CANCELLED == status) {
 					rob.enter();
-					break;
+				} else if (status == TRADE_STATUS_IN_TRADE) {
+					return;
 				}
 			}
 		}
+		throw new MTGOException.MTGOTradeFailedException();
 	}
 
 	public String getName(String card) {
@@ -111,17 +180,16 @@ public class MicroBot {
 		return card.split("\\[")[1].replace("]", "").trim();
 	}
 
-	private Object[] scrapeRows(String card, Rectangle rect) {
+	public Object[] scrapeRows(String card, Rectangle rect) {
 		int i = 0;
 		String name = getName(card);
 		String set = getSet(card);
 		String result = null;
 		for (; i < 30; i++) {
-			String row = readTradeRow(i, rect);
-			System.out.println(row);
+			Rectangle rectangle = rectangleTrans(i, rect);
+			String row = scanner.scan(rob.getScreen(rectangle));
 			if (row.contains(name) && row.contains(set)) {
 				result = row;
-				System.out.println("success");
 				break;
 			}
 			if (row.equals(""))
@@ -130,9 +198,14 @@ public class MicroBot {
 		return new Object[] { i, result };
 	}
 
+	private Rectangle rectangleTrans(int i, Rectangle base) {
+		Rectangle r = new Rectangle(base);
+		r.translate(0, r.height * i);
+		return r;
+	}
+
 	public Object[] buyCardIfUnder(String card, double max) throws MTGOTradeFailedException, MTGORipOffException {
 		String name = getName(card);
-		String set = getSet(card);
 		searchForCard(name);
 		this.sleep(1000);
 		int i = 0;
@@ -141,6 +214,11 @@ public class MicroBot {
 		Object[] ob = scrapeRows(card, Locations.TradeCardRowTemplate);
 		i = (int) ob[0];
 		result = (String) ob[1];
+		try {
+			SimpleSaveLoad.append("test", result);
+		} catch (Exception e) {
+
+		}
 		if (result == null) {
 			exitScreen();
 			throw new MTGOTradeFailedException();
@@ -202,6 +280,11 @@ public class MicroBot {
 		return sc;
 	}
 
+	public String readTradeRow(BufferedImage re) {
+		String sc = scanner.scan(re).trim();
+		return sc;
+	}
+
 	public int sellAllNoMatterPrice(int estimation) throws MTGOTradeFailedException {
 		this.sleep(10000);
 		rob.moveTo(Locations.INTRADE_OTHER);
@@ -217,13 +300,13 @@ public class MicroBot {
 		y += (0 + .5f) * Locations.TradeCardRowTemplate.height;
 		int i = 0;
 		rob.moveTo(x, y);
-		for (; i < estimation; i++) {
-			rob.doubleClick();
-			sleep(400);
-		}
+//		for (; i < estimation; i++) {
+//			rob.doubleClick();
+//			sleep(400);
+//		}
 		sleep(600);
 		String textScan = scanner.scan(rob.getScreen(Locations.ChatArea));
-		while(textScan.contains("return") || textScan.contains("remove") || textScan.contains("too many")){
+		while (textScan.contains("return") || textScan.contains("remove") || textScan.contains("too many")) {
 			i--;
 			rob.moveTo(Locations.MyTakenItem);
 			rob.doubleClick();
@@ -253,7 +336,7 @@ public class MicroBot {
 		String set = getSet(card);
 		rob.moveTo(Locations.COLLECTION_BUTTON);
 		rob.click();
-		this.sleep(1000);
+		this.sleep(2000);
 		rob.moveTo(Locations.SELL_BINDER);
 		rob.click();
 		rob.moveTo(Locations.COLLECTION_CARDS);
@@ -267,8 +350,8 @@ public class MicroBot {
 		rob.enter();
 		Object[] obs = scrapeRows(card, Locations.CollectionCardRowTemplate);
 		int i = (int) obs[0];
-		if(obs[1]==null)
-			throw new MTGOException.MTGOCannotFindCardException();
+		if (obs[1] == null)
+			i = 0;
 		Point p = new Point(Locations.CollectionCardRowTemplate.x + 30,
 				(int) ((i + .5) * Locations.CollectionCardRowTemplate.getHeight()
 						+ Locations.CollectionCardRowTemplate.y));
@@ -280,9 +363,7 @@ public class MicroBot {
 	}
 
 	public void addTixToAccount(int tix) {
-		rob.moveTo(Locations.COLLECTION_BUTTON);
-		rob.click();
-		this.sleep(1000);
+		this.setBuyBinderToActive();
 		rob.moveTo(Locations.COLLECTION_OTHER);
 		rob.click();
 		rob.moveTo(Locations.COLLECTION_CLEAR_FILTER);
@@ -292,7 +373,10 @@ public class MicroBot {
 		rob.press(KeyEvent.VK_BACK_SPACE);
 		rob.type("ticket");
 		rob.enter();
-		rob.moveTo(Locations.Collections_First);
+		Point p = new Point(Locations.CollectionCardRowTemplate.x + 30,
+				(int) ((0 + .5) * Locations.CollectionCardRowTemplate.getHeight()
+						+ Locations.CollectionCardRowTemplate.y));
+		rob.moveTo(p);
 		for (int i = 0; i < tix; i++) {
 			rob.doubleClick();
 			sleep(400);
@@ -311,8 +395,10 @@ public class MicroBot {
 	}
 
 	private void activateBinder() {
-		rob.moveTo(Locations.COLLECTION_BINDER_OPTIONS);
-		rob.click();
+		for (int i = 0; i < 8; i++) {
+			rob.moveTo(Locations.COLLECTION_BINDER_OPTIONS.x - 40 + i * 10, Locations.COLLECTION_BINDER_OPTIONS.y);
+			rob.click();
+		}
 		rob.moveTo(Locations.COLLECTION_BINDER_OPTIONS_ACTIVE);
 		rob.click();
 		rob.moveTo(Locations.COLLECTION_BINDER_OPTIONS_OK);
@@ -328,4 +414,12 @@ public class MicroBot {
 		}
 	}
 
+	public void log(String s) {
+		try {
+			SimpleSaveLoad.append("logs", s);
+		} catch (Exception e) {
+		}
+
+		System.out.println(s);
+	}
 }
